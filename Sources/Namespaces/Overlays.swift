@@ -29,7 +29,9 @@ final class OverlayController {
         guard let model, model.data.preferences.missionControlLabelsEnabled else { return }
         hide()
         for screen in NSScreen.screens {
-            let profiles = model.nativeSpaces.filter { $0.displayName == screen.localizedName || NSScreen.screens.count == 1 }.compactMap(model.profile(for:))
+            let profiles = model.nativeSpaces
+                .filter { $0.displayName == screen.localizedName || NSScreen.screens.count == 1 }
+                .compactMap { native in model.profile(for: native) }
             guard !profiles.isEmpty else { continue }
             let view = SpaceStripView(profiles: profiles, activeID: model.activeProfile?.id) { [weak model] profile in model?.switchTo(profile) }
             let panel = NSPanel(contentViewController: NSHostingController(rootView: view))

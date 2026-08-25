@@ -124,7 +124,7 @@ public enum CSVExporter {
         var lines = ["id,space,application,bundle_id,start,end,duration_seconds,classification,billable,note"]
         for item in segments {
             let name = spaces.first(where: { $0.id == item.spaceID })?.name ?? "Unknown"
-            lines.append([item.id.uuidString, name, item.appName, item.appBundleID, formatter.string(from: item.start), item.end.map(formatter.string) ?? "", String(format: "%.0f", item.duration), item.classification.rawValue, String(item.billable), item.note].map(escape).joined(separator: ","))
+            lines.append([item.id.uuidString, name, item.appName, item.appBundleID, formatter.string(from: item.start), item.end.map { formatter.string(from: $0) } ?? "", String(format: "%.0f", item.duration), item.classification.rawValue, String(item.billable), item.note].map { escape($0) }.joined(separator: ","))
         }
         return lines.joined(separator: "\n") + "\n"
     }

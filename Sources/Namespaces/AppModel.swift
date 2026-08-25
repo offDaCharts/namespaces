@@ -36,7 +36,10 @@ final class AppModel: ObservableObject {
     var activeNativeSpace: NativeSpace? { nativeSpaces.first(where: \.isActive) }
     var activeProfile: SpaceProfile? { guard let native = activeNativeSpace else { return nil }; return profile(for: native) }
     var currentName: String { activeProfile?.name ?? activeNativeSpace.map { "Desktop \($0.index)" } ?? "Namespaces" }
-    var profilesInDisplayOrder: [SpaceProfile] { nativeSpaces.compactMap(profile(for:)) }
+    // Keep these as explicit closures rather than unapplied instance-method
+    // references. Swift 6.0/6.1 can otherwise select a typed-throws overload of
+    // compactMap even though profile(for:) is non-throwing.
+    var profilesInDisplayOrder: [SpaceProfile] { nativeSpaces.compactMap { native in profile(for: native) } }
 
     init() {
         observers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in Task { @MainActor in self?.refreshSpaces() } })
