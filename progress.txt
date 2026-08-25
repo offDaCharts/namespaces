@@ -1,0 +1,88 @@
+# Namespaces Implementation Journal
+
+This file preserves durable implementation state for Codex across long runs,
+context compaction, restarts, and handoffs. It is not a Ralph-loop control file.
+
+## Current Milestone
+
+Private-use release candidate. The native app is buildable, packaged, running,
+and live-verified on the repository owner's current Mac. Remaining verification
+boundaries require owner permission, other hardware, or signing credentials.
+
+## Completed and Verified
+
+- Swift Package project, macOS 14 target, core library, app target, and tests.
+- Deterministic build/run scripts producing an ad-hoc-signed `Namespaces.app`.
+- AppKit accessory lifecycle, status item/menu, settings window, URL commands.
+- Enhanced provider dynamically resolving WindowServer Space functions.
+- Live discovery verified against six native Spaces on macOS 15.7.4.
+- Direct switching pipeline, active-Space observations, and provider errors.
+- SwiftData primary mirror plus versioned readable JSON, migration-tolerant decoding,
+  atomic writes, validated package backup/restore, and optional rolling backups.
+- Space names, symbols, colors, aliases, tracking/billable metadata, shortcut presets.
+- Searchable Quick Switcher, display/ordinal labels, keyboard navigation, Jump Back.
+- Per-Space text notes/checklists and native-Space placement for note windows.
+- Explicit automation groups/actions and argument-safe process execution.
+- Local automatic Space/application tracking, idle classification, sessions, CSV.
+- Package backup export/import validation, Markdown notes, transactional restore,
+  factory reset, diagnostics, and local capability/privacy UI.
+- Mission Control/top-of-screen labels with manual preview and F3/Ctrl-Up trigger.
+- Optional top-center hover Space strip.
+- Frontmost-window movement and Shift-drag target overlay.
+- Live UI verification: settings, six-Space discovery, rename persistence,
+  Quick Switcher search/dismissal, and label window creation.
+
+## External Verification Boundaries
+
+- Grant Accessibility to live-test focused-window and Shift-drag movement.
+- Test Intel, macOS 14/26, and multi-display hardware before claiming them.
+- Supply Developer ID/notary credentials only if distributing beyond private use.
+
+## Decisions and Rationale
+
+- Product and engineering specification created in `PRD.md`.
+- Implementation is intended for continuous end-to-end Codex ownership.
+- Swift Package is the source-of-truth project and opens directly in Xcode;
+  scripts assemble a standard app bundle without a generated-project dependency.
+- Private WindowServer symbols exist only in the enhanced provider and focused
+  window resolver; the rest of the app consumes typed capabilities.
+- SwiftData is the local primary mirror; readable JSON is intentionally maintained
+  beside it for inspection, recovery, and portable backups.
+
+## Compatibility Findings
+
+- macOS 15.7.4 (24G517), Apple Silicon: enhanced enumeration returns six Spaces.
+- `CGSManagedDisplaySetCurrentSpace` and `CGSMoveWindowsToManagedSpace` symbols
+  resolve on this build.
+- Top-level AppDelegate marked `@main` compiled but did not install itself as the
+  NSApplication delegate. Replaced with an explicit `NamespacesMain` entry point;
+  packaged UI and menu windows now appear correctly.
+- Computer Use does not list an accessory app until it has a standard window,
+  so the first-run Settings window and `namespaces://` command URLs aid testing.
+
+## Test and Verification Results
+
+- `swift test`: passing (15 tests).
+- Debug app bundle codesign verification: passing.
+- Packaged process launch: passing.
+- Live settings accessibility tree and visual inspection: passing.
+- Native rename persisted to Application Support: passing.
+- Quick Switcher fuzzy filter and Escape dismissal: passing.
+- Label overlay CGWindow creation: passing.
+- Five-step onboarding and six-Space confirmation: passing live.
+- Shortcuts and tracking settings panes: passing live accessibility-tree inspection.
+- Quick Switcher display filter and action controls: passing live visual inspection.
+
+## Blockers Requiring User Action
+
+- Accessibility permission must be granted by the user before focused-window and
+  Shift-drag movement can be fully exercised. Continue all independent work first.
+
+## Learnings
+
+- Always test the packaged application entry point; `swift build` alone did not
+  expose the original lifecycle defect.
+- Do not infer accessory-window visibility from the running process alone; query
+  CGWindow state or create a standard window for UI automation.
+
+---

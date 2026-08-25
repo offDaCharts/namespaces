@@ -1,0 +1,19 @@
+name: macOS CI
+on:
+  push:
+  pull_request:
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: swift --version
+      - name: Clean build and tests
+        run: swift package clean && swift test
+      - name: Package app
+        run: ./Scripts/build-app.sh release
+      - name: Verify signature and offline policy
+        run: |
+          codesign --verify --deep --strict build/Namespaces.app
+          ! rg 'URLSession|NWConnection|TelemetryClient|SentrySDK|Analytics' Sources Package.swift
