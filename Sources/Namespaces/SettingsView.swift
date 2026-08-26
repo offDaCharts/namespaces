@@ -238,8 +238,9 @@ private struct CapabilitiesView: View {
         CapabilityRow(name: "Discover native Spaces", available: model.provider.capabilities.contains(.enumerate))
         CapabilityRow(name: "Direct switching", available: model.provider.capabilities.contains(.switchSpace))
         CapabilityRow(name: "Move windows", available: model.provider.capabilities.contains(.moveWindow))
-        CapabilityRow(name: "Mission Control overlays", available: model.provider.capabilities.contains(.missionControlLabels))
+        CapabilityRow(name: "Mission Control overlays", available: model.provider.capabilities.contains(.missionControlLabels) && AXIsProcessTrusted())
         CapabilityRow(name: "Accessibility", available: AXIsProcessTrusted())
+        LabeledContent("Mission Control status", value: model.missionControlOverlayStatus)
         if model.providerCircuitOpen { Label("Enhanced integration circuit is open after three failures.", systemImage: "bolt.trianglebadge.exclamationmark.fill").foregroundStyle(.orange) }
         HStack { Button("Retry Enhanced Provider") { model.retryEnhancedProvider() }; Button("Request Accessibility Access") { let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary; _ = AXIsProcessTrustedWithOptions(options) }; Button("Open Accessibility Settings") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!) } }
     } }
@@ -289,9 +290,10 @@ private struct GeneralSettingsView: View {
         Toggle("Launch at login", isOn: prefs.launchAtLogin); Toggle("Automatic local time tracking", isOn: prefs.trackingEnabled)
         HStack { Text("Idle threshold"); TextField("seconds", value: prefs.idleThreshold, format: .number).frame(width: 90); Text("seconds").foregroundStyle(.secondary) }
         Toggle("Enhanced native Spaces integration", isOn: prefs.enhancedIntegrationEnabled).onChange(of: prefs.wrappedValue.enhancedIntegrationEnabled) { _, _ in model.selectProvider(); model.refreshSpaces() }
-        Toggle("Mission Control labels (experimental)", isOn: prefs.missionControlLabelsEnabled)
+        Toggle("Show names on Mission Control thumbnails", isOn: prefs.missionControlLabelsEnabled)
+        Text("Namespaces adds click-through colored labels over Mission Control. Apple’s Desktop 1, Desktop 2 labels are not modified. Accessibility lets Namespaces detect trackpad gestures and follow each thumbnail without disabling SIP.").font(.caption).foregroundStyle(.secondary)
         Toggle("Reveal Space strip by hovering at the top center", isOn: prefs.hoverEnabled)
-        HStack { Button("Preview Space Labels") { OverlayController.shared.showSpaceLabels(duration: 5) }; Menu("Move Frontmost Window") { ForEach(model.profilesInDisplayOrder) { profile in Button(profile.name) { model.moveFrontmostWindow(to: profile) } } } }
+        HStack { Button("Preview Space Labels") { OverlayController.shared.showSpaceLabels(duration: 5) }; Button("Grant Accessibility…") { let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary; _ = AXIsProcessTrustedWithOptions(options) }; Menu("Move Frontmost Window") { ForEach(model.profilesInDisplayOrder) { profile in Button(profile.name) { model.moveFrontmostWindow(to: profile) } } } }
         Divider(); Label("Namespaces makes no analytics, telemetry, advertising, or crash-report uploads.", systemImage: "hand.raised.fill").foregroundStyle(.secondary)
     } }
 }

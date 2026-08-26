@@ -99,7 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        model.closeOpenSegment(classification: .active); OverlayController.shared.hide(); WindowCoordinator.shared.hideAllNotes(); HotKeyCenter.shared.unregisterAll()
+        model.closeOpenSegment(classification: .active); OverlayController.shared.shutdown(); WindowCoordinator.shared.hideAllNotes(); HotKeyCenter.shared.unregisterAll()
         if let screenObserver { NotificationCenter.default.removeObserver(screenObserver) }
     }
 

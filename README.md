@@ -16,7 +16,9 @@ switching, and augmenting native macOS Spaces.
   classification and named sessions.
 - Exports readable JSON backups and CSV tracking data.
 - Reports provider and Accessibility capabilities without uploading data.
-- Shows optional Mission Control/hover labels and a Shift-drag window target.
+- Places persistent colored names over the matching Mission Control desktop
+  thumbnails, including gesture and Hot Corner activation, and provides a
+  separate optional hover strip and Shift-drag window target.
 - Audits tracking corrections, creates readable backup packages with Markdown
   notes, and can retain 7 or 30 daily local recovery copies.
 
@@ -24,7 +26,8 @@ switching, and augmenting native macOS Spaces.
 
 - macOS 14 Sonoma or newer
 - Xcode 16 or newer (tested with Xcode 26.2 / Swift 6.2.3)
-- Accessibility permission for window-focused features
+- Accessibility permission for thumbnail-aligned Mission Control labels and
+  window-focused features
 
 ## Build and run
 
@@ -68,8 +71,8 @@ swift run Namespaces
    bar.
 2. Open **Settings → Spaces** and name each discovered desktop.
 3. Press `⌥Space` to open the Quick Switcher.
-4. Open **Capabilities** to grant Accessibility only if you want window-level
-   features.
+4. Open **Capabilities** and grant Accessibility to show names on Mission
+   Control thumbnails and use window-level features.
 5. Configure notes, automations, and tracking as desired.
 
 The app is ready to use directly from `build/Namespaces.app`. To keep it in your
@@ -84,6 +87,20 @@ All content is stored at:
 Namespaces has no analytics, telemetry, accounts, advertising, or automatic
 crash upload. Experimental integration is isolated and fails closed when the
 current macOS build does not expose the required WindowServer capabilities.
+
+### Mission Control names
+
+Namespaces cannot modify Apple's native `Desktop 1`, `Desktop 2`, … strings.
+With **Show names on Mission Control thumbnails** enabled, it detects Mission
+Control through the Dock and adds click-through colored labels containing your
+saved name and symbol. The labels follow the desktop controls until Mission
+Control closes. Keyboard shortcuts, trackpad gestures, Dock activation, and Hot
+Corners use the same observer path.
+
+If names do not appear, open **Settings → Capabilities** and check **Mission
+Control status**. Grant Accessibility to the exact copy of `Namespaces.app`
+that you run, then quit and reopen it. Rebuilding or moving an ad-hoc-signed app
+can require removing the old Accessibility entry and granting it again.
 
 ## Specifications
 

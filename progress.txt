@@ -26,7 +26,12 @@ boundaries require owner permission, other hardware, or signing credentials.
 - Local automatic Space/application tracking, idle classification, sessions, CSV.
 - Package backup export/import validation, Markdown notes, transactional restore,
   factory reset, diagnostics, and local capability/privacy UI.
-- Mission Control/top-of-screen labels with manual preview and F3/Ctrl-Up trigger.
+- Gesture-independent Mission Control detection through Dock AX notifications
+  with a WindowServer fallback, plus per-desktop colored name/symbol panels that
+  follow native Mission Control controls and close with Mission Control.
+- Deterministic opening-animation fallback, multi-display candidate scoping,
+  reusable click-through panels, and live integration status in Settings.
+- Separate manual/top-of-screen preview strip retained for normal desktop use.
 - Optional top-center hover Space strip.
 - Frontmost-window movement and Shift-drag target overlay.
 - Live UI verification: settings, six-Space discovery, rename persistence,
@@ -62,21 +67,24 @@ boundaries require owner permission, other hardware, or signing credentials.
 
 ## Test and Verification Results
 
-- `swift test`: passing (15 tests).
+- `swift test`: passing (18 tests).
 - Debug app bundle codesign verification: passing.
 - Packaged process launch: passing.
 - Live settings accessibility tree and visual inspection: passing.
 - Native rename persisted to Application Support: passing.
 - Quick Switcher fuzzy filter and Escape dismissal: passing.
 - Label overlay CGWindow creation: passing.
+- Mission Control native ordinal parsing, fallback ordering/containment, and
+  long-name non-overlap: passing.
 - Five-step onboarding and six-Space confirmation: passing live.
 - Shortcuts and tracking settings panes: passing live accessibility-tree inspection.
 - Quick Switcher display filter and action controls: passing live visual inspection.
 
 ## Blockers Requiring User Action
 
-- Accessibility permission must be granted by the user before focused-window and
-  Shift-drag movement can be fully exercised. Continue all independent work first.
+- Accessibility permission must be granted by the user before focused-window,
+  Shift-drag, and exact Mission Control thumbnail placement can be fully
+  exercised. All non-permission-dependent implementation and testing is complete.
 
 ## Learnings
 

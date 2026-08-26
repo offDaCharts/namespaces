@@ -1,6 +1,6 @@
 # Compatibility and Release Test Matrix
 
-Last verified: 2026-08-25, Namespaces 0.1.0.
+Last verified: 2026-08-26, Namespaces 0.1.0.
 
 | Configuration | Build | Discovery | Switching | Overlay | Window move | Status |
 |---|---:|---:|---:|---:|---:|---|
@@ -18,4 +18,11 @@ disconnect; VoiceOver; keyboard navigation; Increase Contrast; Reduce Motion;
 offline launch and operation; signature verification.
 
 Accessibility permission is user-controlled. Until it is granted, focused-window
-movement and Shift-drag are correctly disabled and are not claimed live-verified.
+movement, Shift-drag, and exact Mission Control thumbnail alignment are correctly
+reported unavailable. The label fallback remains local and noninteractive.
+
+Mission Control regression checks: Dock AX notification setup/teardown; gesture-
+independent WindowServer detection; open/close debounce; native ordinal parsing;
+fallback containment and ordering; long-name non-overlap; multiple-display
+candidate scoping; panel reuse; disabled preference; screen topology changes; and
+Accessibility revoked/restored while running.

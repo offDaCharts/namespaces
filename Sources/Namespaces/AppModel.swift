@@ -17,6 +17,7 @@ final class AppModel: ObservableObject {
     @Published var hotkeyRevision = 0
     @Published var providerCircuitOpen = false
     @Published var hotkeyFailures: [String] = []
+    @Published var missionControlOverlayStatus = "Initializing Mission Control integration…"
 
     let store = DataStore()
     private(set) var provider: SpaceProviding = FallbackSpaceProvider()

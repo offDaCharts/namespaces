@@ -6,28 +6,42 @@ import SwiftUI
 @MainActor
 final class OverlayController {
     static let shared = OverlayController()
-    private var panels: [NSPanel] = []
+    private var previewPanels: [NSPanel] = []
+    private var missionControlPanels: [UUID: MissionControlLabelPanel] = [:]
     private var hideTask: Task<Void, Never>?
-    private var keyMonitor: Any?
     private var mouseMonitor: Any?
+    private var missionControlRefreshTimer: Timer?
+    private let missionControlObserver = MissionControlObserver()
     private weak var model: AppModel?
 
     func configure(model: AppModel) {
         self.model = model
-        if keyMonitor == nil {
-            keyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-                let missionControlKey = event.keyCode == 99 || (event.keyCode == 126 && event.modifierFlags.contains(.control))
-                if missionControlKey { Task { @MainActor in try? await Task.sleep(for: .milliseconds(280)); self?.showSpaceLabels(duration: 3) } }
+        model.missionControlOverlayStatus = AXIsProcessTrusted()
+            ? "Ready — opens automatically with Mission Control"
+            : "Accessibility permission is required for thumbnail-aligned labels"
+        missionControlObserver.start(
+            stateChanged: { [weak self] active in
+                guard let self else { return }
+                if active { self.beginMissionControlSession() }
+                else { self.endMissionControlSession() }
+            },
+            accessibilityChanged: { [weak self, weak model] trusted in
+                guard let self, !self.missionControlObserver.isActive else { return }
+                model?.missionControlOverlayStatus = trusted
+                    ? "Ready — waiting for Mission Control"
+                    : "Accessibility permission is required for thumbnail-aligned labels"
             }
-        }
+        )
         if mouseMonitor == nil {
             mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDown]) { [weak self] _ in Task { @MainActor in self?.handlePointer() } }
         }
     }
 
+    /// Shows a manual preview outside Mission Control. Real Mission Control
+    /// labels are managed by the observer and remain visible until it closes.
     func showSpaceLabels(duration: TimeInterval = 2.5) {
         guard let model, model.data.preferences.missionControlLabelsEnabled else { return }
-        hide()
+        hidePreview()
         for screen in NSScreen.screens {
             let profiles = model.nativeSpaces
                 .filter { $0.displayName == screen.localizedName || NSScreen.screens.count == 1 }
@@ -39,19 +53,136 @@ final class OverlayController {
             panel.level = .screenSaver; panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
             let width = min(screen.visibleFrame.width - 40, CGFloat(max(360, profiles.count * 125)))
             panel.setFrame(NSRect(x: screen.visibleFrame.midX - width / 2, y: screen.visibleFrame.maxY - 105, width: width, height: 62), display: true)
-            panel.orderFrontRegardless(); panels.append(panel)
+            panel.orderFrontRegardless(); previewPanels.append(panel)
         }
-        hideTask?.cancel(); hideTask = Task { try? await Task.sleep(for: .seconds(duration)); if !Task.isCancelled { hide() } }
+        hideTask?.cancel(); hideTask = Task { try? await Task.sleep(for: .seconds(duration)); if !Task.isCancelled { hidePreview() } }
     }
 
     private func handlePointer() {
         guard let model, model.data.preferences.hoverEnabled, let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) }) else { return }
         let point = NSEvent.mouseLocation
         let activation = NSRect(x: screen.frame.midX - 130, y: screen.frame.maxY - 5, width: 260, height: 8)
-        if activation.contains(point) && panels.isEmpty { showSpaceLabels(duration: 5) }
+        if activation.contains(point) && previewPanels.isEmpty && !missionControlObserver.isActive { showSpaceLabels(duration: 5) }
     }
 
-    func hide() { hideTask?.cancel(); hideTask = nil; panels.forEach { $0.orderOut(nil) }; panels.removeAll() }
+    private func beginMissionControlSession() {
+        guard let model else { return }
+        hidePreview()
+        guard model.data.preferences.missionControlLabelsEnabled else {
+            model.missionControlOverlayStatus = "Disabled in General settings"
+            return
+        }
+        model.refreshSpaces()
+        refreshMissionControlLabels()
+        missionControlRefreshTimer?.invalidate()
+        missionControlRefreshTimer = Timer.scheduledTimer(withTimeInterval: 0.12, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.refreshMissionControlLabels() }
+        }
+        if let missionControlRefreshTimer { RunLoop.main.add(missionControlRefreshTimer, forMode: .common) }
+    }
+
+    private func refreshMissionControlLabels() {
+        guard missionControlObserver.isActive, let model,
+              model.data.preferences.missionControlLabelsEnabled
+        else { endMissionControlSession(); return }
+
+        let targets = MissionControlLabelLocator.targets(model: model)
+        let targetIDs = Set(targets.map(\.profile.id))
+        let staleIDs = missionControlPanels.keys.filter { !targetIDs.contains($0) }
+        for id in staleIDs {
+            missionControlPanels[id]?.orderOut(nil)
+            missionControlPanels.removeValue(forKey: id)
+        }
+        for target in targets {
+            let panel: MissionControlLabelPanel
+            if let existing = missionControlPanels[target.profile.id] {
+                existing.update(profile: target.profile, activeID: model.activeProfile?.id)
+                panel = existing
+            } else {
+                panel = MissionControlLabelPanel(profile: target.profile, activeID: model.activeProfile?.id)
+                missionControlPanels[target.profile.id] = panel
+            }
+            if panel.frame != target.frame { panel.setFrame(target.frame, display: true) }
+            panel.orderFrontRegardless()
+        }
+        if targets.contains(where: { $0.source == .accessibility }) {
+            model.missionControlOverlayStatus = "Active — labels aligned to Mission Control thumbnails"
+        } else if AXIsProcessTrusted() {
+            model.missionControlOverlayStatus = "Active — using animated layout fallback"
+        } else {
+            model.missionControlOverlayStatus = "Active — grant Accessibility for exact thumbnail alignment"
+        }
+    }
+
+    private func endMissionControlSession() {
+        missionControlRefreshTimer?.invalidate()
+        missionControlRefreshTimer = nil
+        missionControlPanels.values.forEach { $0.orderOut(nil) }
+        missionControlPanels.removeAll()
+        if let model {
+            model.missionControlOverlayStatus = !model.data.preferences.missionControlLabelsEnabled
+                ? "Disabled in General settings"
+                : AXIsProcessTrusted()
+                    ? "Ready — waiting for Mission Control"
+                    : "Accessibility permission is required for thumbnail-aligned labels"
+        }
+    }
+
+    private func hidePreview() {
+        hideTask?.cancel()
+        hideTask = nil
+        previewPanels.forEach { $0.orderOut(nil) }
+        previewPanels.removeAll()
+    }
+
+    func hide() { hidePreview(); endMissionControlSession() }
+
+    func shutdown() {
+        hide()
+        missionControlObserver.stop()
+        if let mouseMonitor { NSEvent.removeMonitor(mouseMonitor); self.mouseMonitor = nil }
+    }
+}
+
+private struct MissionControlBadgeView: View {
+    let profile: SpaceProfile
+    let activeID: UUID?
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: profile.symbol)
+            Text(profile.name).lineLimit(1)
+        }
+        .font(.system(size: 12, weight: profile.id == activeID ? .bold : .semibold))
+        .foregroundStyle(.white)
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(hex: profile.colorHex).opacity(0.96), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(.white.opacity(profile.id == activeID ? 0.72 : 0.22), lineWidth: profile.id == activeID ? 1.5 : 1))
+        .shadow(color: .black.opacity(0.5), radius: 4, y: 2)
+    }
+}
+
+@MainActor
+private final class MissionControlLabelPanel: NSPanel {
+    private let hostingView: NSHostingView<MissionControlBadgeView>
+
+    init(profile: SpaceProfile, activeID: UUID?) {
+        hostingView = NSHostingView(rootView: MissionControlBadgeView(profile: profile, activeID: activeID))
+        super.init(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        contentView = hostingView
+        isOpaque = false
+        backgroundColor = .clear
+        hasShadow = false
+        ignoresMouseEvents = true
+        level = NSWindow.Level(Int(CGWindowLevelForKey(.screenSaverWindow)))
+        collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .stationary]
+        isReleasedWhenClosed = false
+    }
+
+    func update(profile: SpaceProfile, activeID: UUID?) {
+        hostingView.rootView = MissionControlBadgeView(profile: profile, activeID: activeID)
+    }
 }
 
 private struct SpaceStripView: View {

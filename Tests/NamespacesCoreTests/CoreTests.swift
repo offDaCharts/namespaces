@@ -123,4 +123,33 @@ final class CoreTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(AutomationValidator.errors(for: script).count, 3)
         XCTAssertTrue(AutomationValidator.errors(for: .init(kind: .openURL, title: "Docs", target: "https://example.invalid")).isEmpty)
     }
+
+    func testMissionControlDesktopLabelParsing() {
+        XCTAssertEqual(MissionControlLayout.desktopIndex(in: ["Desktop 3"]), 3)
+        XCTAssertEqual(MissionControlLayout.desktopIndex(in: ["ignored", "Space 12, selected"]), 12)
+        XCTAssertNil(MissionControlLayout.desktopIndex(in: ["Finder window 3"]))
+        XCTAssertNil(MissionControlLayout.desktopIndex(in: ["Desktop 0"]))
+    }
+
+    func testMissionControlFallbackLayoutIsOrderedAndContained() {
+        let screen = CGRect(x: 0, y: 0, width: 1_440, height: 900)
+        let items = (1...6).map { MissionControlLayoutItem(index: $0, name: "Space \($0)") }
+        let frames = MissionControlLayout.fallbackFrames(items: items.reversed(), screenFrame: screen)
+        XCTAssertEqual(frames.count, 6)
+        for index in 1...6 {
+            guard let frame = frames[index] else { return XCTFail("Missing frame \(index)") }
+            XCTAssertTrue(screen.contains(frame))
+            if index > 1 { XCTAssertLessThan(frames[index - 1]!.midX, frame.midX) }
+        }
+    }
+
+    func testMissionControlFallbackCapsLongNamesWithoutOverlap() {
+        let screen = CGRect(x: -900, y: 100, width: 900, height: 700)
+        let items = (1...8).map { MissionControlLayoutItem(index: $0, name: String(repeating: "Long", count: 30)) }
+        let frames = MissionControlLayout.fallbackFrames(items: items, screenFrame: screen)
+        let ordered = (1...8).compactMap { frames[$0] }
+        XCTAssertEqual(ordered.count, 8)
+        XCTAssertTrue(ordered.allSatisfy { screen.contains($0) })
+        for pair in zip(ordered, ordered.dropFirst()) { XCTAssertLessThanOrEqual(pair.0.maxX, pair.1.minX) }
+    }
 }
