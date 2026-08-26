@@ -29,6 +29,8 @@ final class MissionControlObserver {
     private var axObserver: AXObserver?
     private var distributedObservers: [NSObjectProtocol] = []
     private var pollTimer: Timer?
+    private var activePollTimer: Timer?
+    private var activeSpaceObserver: NSObjectProtocol?
     private var stateChanged: ((Bool) -> Void)?
     private var accessibilityChanged: ((Bool) -> Void)?
     private var lastAccessibilityState = false
@@ -45,6 +47,11 @@ final class MissionControlObserver {
         accessibilityChanged(lastAccessibilityState)
         installDockObserverIfPossible()
         installDistributedObservers()
+        activeSpaceObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.setActive(false) }
+        }
         pollTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.poll() }
         }
@@ -55,6 +62,12 @@ final class MissionControlObserver {
     func stop() {
         pollTimer?.invalidate()
         pollTimer = nil
+        activePollTimer?.invalidate()
+        activePollTimer = nil
+        if let activeSpaceObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(activeSpaceObserver)
+            self.activeSpaceObserver = nil
+        }
         removeDockObserver()
         let center = DistributedNotificationCenter.default()
         distributedObservers.forEach(center.removeObserver)
@@ -151,7 +164,14 @@ final class MissionControlObserver {
         if active {
             activeSince = CACurrentMediaTime()
             hasSeenMissionControlWindow = false
+            activePollTimer?.invalidate()
+            activePollTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+                Task { @MainActor in self?.poll() }
+            }
+            if let activePollTimer { RunLoop.main.add(activePollTimer, forMode: .common) }
         } else {
+            activePollTimer?.invalidate()
+            activePollTimer = nil
             hasSeenMissionControlWindow = false
         }
         stateChanged?(active)

@@ -44,6 +44,12 @@ macOS still blocks it, use **System Settings → Privacy & Security → Open Any
 Then grant Accessibility if you want Mission Control thumbnail labels and window
 movement.
 
+To update, quit Namespaces, download the newer DMG, and replace the existing app
+in Applications. Names, colors, notes, preferences, tracking history, and other
+data remain in `~/Library/Application Support/Namespaces` and are not stored
+inside the app bundle. macOS may ask you to confirm Accessibility permission
+again after replacing an ad-hoc-signed private build.
+
 ### Build from source
 
 ```bash

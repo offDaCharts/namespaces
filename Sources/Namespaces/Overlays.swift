@@ -11,6 +11,7 @@ final class OverlayController {
     private var hideTask: Task<Void, Never>?
     private var mouseMonitor: Any?
     private var missionControlRefreshTimer: Timer?
+    private var missionControlHasSeenExactTargets = false
     private let missionControlObserver = MissionControlObserver()
     private weak var model: AppModel?
 
@@ -73,9 +74,10 @@ final class OverlayController {
             return
         }
         model.refreshSpaces()
+        missionControlHasSeenExactTargets = false
         refreshMissionControlLabels()
         missionControlRefreshTimer?.invalidate()
-        missionControlRefreshTimer = Timer.scheduledTimer(withTimeInterval: 0.12, repeats: true) { [weak self] _ in
+        missionControlRefreshTimer = Timer.scheduledTimer(withTimeInterval: 0.06, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refreshMissionControlLabels() }
         }
         if let missionControlRefreshTimer { RunLoop.main.add(missionControlRefreshTimer, forMode: .common) }
@@ -87,6 +89,18 @@ final class OverlayController {
         else { endMissionControlSession(); return }
 
         let targets = MissionControlLabelLocator.targets(model: model)
+        let hasExactTargets = targets.contains { $0.source == .accessibility }
+        if hasExactTargets { missionControlHasSeenExactTargets = true }
+        // The pointer can remain at the top after Mission Control collapses.
+        // Once Dock AX supplied real thumbnail anchors, never redraw the
+        // pointer-based fallback while those anchors are absent.
+        if !MissionControlLayout.shouldRenderTargets(
+            hasSeenExactTargets: missionControlHasSeenExactTargets,
+            hasExactTargets: hasExactTargets
+        ) {
+            hideMissionControlPanels()
+            return
+        }
         let targetIDs = Set(targets.map(\.profile.id))
         let staleIDs = missionControlPanels.keys.filter { !targetIDs.contains($0) }
         for id in staleIDs {
@@ -117,8 +131,8 @@ final class OverlayController {
     private func endMissionControlSession() {
         missionControlRefreshTimer?.invalidate()
         missionControlRefreshTimer = nil
-        missionControlPanels.values.forEach { $0.orderOut(nil) }
-        missionControlPanels.removeAll()
+        missionControlHasSeenExactTargets = false
+        hideMissionControlPanels()
         if let model {
             model.missionControlOverlayStatus = !model.data.preferences.missionControlLabelsEnabled
                 ? "Disabled in General settings"
@@ -126,6 +140,11 @@ final class OverlayController {
                     ? "Ready — waiting for Mission Control"
                     : "Accessibility permission is required for thumbnail-aligned labels"
         }
+    }
+
+    private func hideMissionControlPanels() {
+        missionControlPanels.values.forEach { $0.orderOut(nil) }
+        missionControlPanels.removeAll()
     }
 
     private func hidePreview() {
