@@ -22,7 +22,7 @@ movement, Shift-drag, and exact Mission Control thumbnail alignment are correctl
 reported unavailable. The label fallback remains local and noninteractive.
 
 Mission Control regression checks: Dock AX notification setup/teardown; gesture-
-independent WindowServer detection; open/close debounce; native ordinal parsing;
+independent WindowServer detection; opening grace and first-scan close; native ordinal parsing;
 fallback containment and ordering; long-name non-overlap; multiple-display
 candidate scoping; panel reuse; disabled preference; screen topology changes; and
 Accessibility revoked/restored while running.

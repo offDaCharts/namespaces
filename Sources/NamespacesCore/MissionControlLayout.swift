@@ -13,6 +13,10 @@ public struct MissionControlLayoutItem: Equatable, Sendable {
 /// Pure layout/parsing rules shared by the Mission Control integration and
 /// tests. Keeping this free of AppKit makes animation fallbacks deterministic.
 public enum MissionControlLayout {
+    public static func shouldCloseAfterMissingWindow(hasSeenWindow: Bool, secondsSinceOpen: TimeInterval) -> Bool {
+        hasSeenWindow || secondsSinceOpen >= 0.7
+    }
+
     public static func desktopIndex(in values: [String]) -> Int? {
         for value in values {
             let words = value.lowercased().split { !$0.isLetter && !$0.isNumber }
@@ -34,14 +38,17 @@ public enum MissionControlLayout {
         var frames: [Int: CGRect] = [:]
         for (offset, item) in sorted.enumerated() {
             let maximumWidth = max(CGFloat(52), slot - 8)
-            let desiredWidth = max(CGFloat(86), CGFloat(item.name.count * 8 + 48))
+            let desiredWidth = max(CGFloat(54), CGFloat(item.name.count) * 6.4 + 18)
             let width = min(maximumWidth, desiredWidth)
             let offsetX = CGFloat(offset) * slot
             let centeredInset = (slot - width) / 2
             let originX = startX + offsetX + centeredInset
-            let originY = screenFrame.origin.y + screenFrame.size.height - CGFloat(58)
+            // Approximate the lower inset of Mission Control's expanded
+            // thumbnail strip. Exact placement replaces this as soon as AX
+            // exposes the native desktop controls.
+            let originY = screenFrame.origin.y + screenFrame.size.height - CGFloat(136)
             let origin = CGPoint(x: originX, y: originY)
-            let size = CGSize(width: width, height: 30)
+            let size = CGSize(width: width, height: 22)
             frames[item.index] = CGRect(origin: origin, size: size)
         }
         return frames

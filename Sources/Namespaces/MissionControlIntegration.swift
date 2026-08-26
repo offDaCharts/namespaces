@@ -29,10 +29,11 @@ final class MissionControlObserver {
     private var axObserver: AXObserver?
     private var distributedObservers: [NSObjectProtocol] = []
     private var pollTimer: Timer?
-    private var consecutiveWindowServerMisses = 0
     private var stateChanged: ((Bool) -> Void)?
     private var accessibilityChanged: ((Bool) -> Void)?
     private var lastAccessibilityState = false
+    private var activeSince: CFTimeInterval = 0
+    private var hasSeenMissionControlWindow = false
 
     private(set) var isActive = false
 
@@ -119,7 +120,6 @@ final class MissionControlObserver {
     }
 
     private func handleDockNotification(_ notification: String) {
-        consecutiveWindowServerMisses = 0
         setActive(notification != "AXExposeExit")
     }
 
@@ -133,20 +133,27 @@ final class MissionControlObserver {
         if axObserver == nil { installDockObserverIfPossible() }
         let detected = windowServerShowsMissionControl()
         if detected {
-            consecutiveWindowServerMisses = 0
             setActive(true)
+            hasSeenMissionControlWindow = true
         } else if isActive {
-            consecutiveWindowServerMisses += 1
-            // Mission Control windows briefly disappear during its opening
-            // animation. Requiring several misses avoids flashing labels.
-            if consecutiveWindowServerMisses >= 3 { setActive(false) }
+            // Give only the opening animation a grace period. After a real
+            // Mission Control window appears, one missing scan is a close.
+            let elapsed = CACurrentMediaTime() - activeSince
+            if MissionControlLayout.shouldCloseAfterMissingWindow(hasSeenWindow: hasSeenMissionControlWindow, secondsSinceOpen: elapsed) {
+                setActive(false)
+            }
         }
     }
 
     private func setActive(_ active: Bool) {
         guard active != isActive else { return }
         isActive = active
-        if !active { consecutiveWindowServerMisses = 0 }
+        if active {
+            activeSince = CACurrentMediaTime()
+            hasSeenMissionControlWindow = false
+        } else {
+            hasSeenMissionControlWindow = false
+        }
         stateChanged?(active)
     }
 
@@ -197,13 +204,12 @@ enum MissionControlLabelLocator {
 
         for (native, profile) in pairs {
             let screen = screen(for: native) ?? NSScreen.main
+            guard let screen, spaceBarIsExpanded(on: screen, candidates: candidates) else { continue }
             let match = candidates.enumerated().filter { offset, candidate in
                 !claimedCandidates.contains(offset)
                     && candidate.index == native.index
-                    && (screen?.frame.insetBy(dx: -2, dy: -2).contains(candidate.cocoaFrame.center) ?? true)
-            }.min { lhs, rhs in
-                distanceFromTop(lhs.element.cocoaFrame, screen: screen) < distanceFromTop(rhs.element.cocoaFrame, screen: screen)
-            }
+                    && screen.frame.insetBy(dx: -2, dy: -2).contains(candidate.cocoaFrame.center)
+            }.min { candidateScore($0.element.cocoaFrame, screen: screen) < candidateScore($1.element.cocoaFrame, screen: screen) }
 
             if let match {
                 claimedCandidates.insert(match.offset)
@@ -220,6 +226,7 @@ enum MissionControlLabelLocator {
         // Resolve any remaining items positionally within their display.
         var resolvedIDs = Set(resolved.map(\.profile.id))
         for screen in NSScreen.screens {
+            guard spaceBarIsExpanded(on: screen, candidates: candidates) else { continue }
             let remainingPairs = pairs
                 .filter { belongs($0.0, to: screen) && !resolvedIDs.contains($0.1.id) }
                 .sorted { $0.0.index < $1.0.index }
@@ -242,12 +249,13 @@ enum MissionControlLabelLocator {
         // deterministic top-row position, then replace it as soon as AX settles.
         resolvedIDs = Set(resolved.map(\.profile.id))
         for screen in NSScreen.screens {
+            guard spaceBarIsExpanded(on: screen, candidates: candidates) else { continue }
             let screenPairs = pairs.filter { native, profile in
                 !resolvedIDs.contains(profile.id) && belongs(native, to: screen)
             }
             resolved.append(contentsOf: fallbackTargets(screenPairs, screen: screen))
         }
-        if NSScreen.screens.count == 1, let screen = NSScreen.main {
+        if NSScreen.screens.count == 1, let screen = NSScreen.main, spaceBarIsExpanded(on: screen, candidates: candidates) {
             let missing = pairs.filter { !Set(resolved.map(\.profile.id)).contains($0.1.id) }
             resolved.append(contentsOf: fallbackTargets(missing, screen: screen))
         }
@@ -322,10 +330,13 @@ enum MissionControlLabelLocator {
     }
 
     private static func badgeFrame(for anchor: CGRect, name: String, screen: NSScreen?) -> CGRect {
-        let width = min(240, max(86, CGFloat(name.count * 8 + 48)))
-        let height: CGFloat = 30
+        let desiredWidth = min(190, max(54, CGFloat(name.count) * 6.4 + 18))
+        let width = anchor.height > 50 ? min(desiredWidth, max(54, anchor.width - 12)) : desiredWidth
+        let height: CGFloat = 22
         var x = anchor.midX - width / 2
-        var y = anchor.height > 54 ? anchor.minY + 7 : anchor.midY - height / 2
+        // Compact anchors are Apple's Desktop labels below the previews, so
+        // move upward into the preview. Large anchors are preview controls.
+        var y = anchor.height > 50 ? anchor.minY + 5 : anchor.maxY + 5
         if let frame = screen?.frame {
             x = min(max(x, frame.minX + 4), frame.maxX - width - 4)
             y = min(max(y, frame.minY + 4), frame.maxY - height - 4)
@@ -360,6 +371,22 @@ enum MissionControlLabelLocator {
     private static func distanceFromTop(_ frame: CGRect, screen: NSScreen?) -> CGFloat {
         guard let screen else { return 0 }
         return abs(screen.frame.maxY - frame.maxY)
+    }
+
+    private static func candidateScore(_ frame: CGRect, screen: NSScreen?) -> CGFloat {
+        let compactPenalty: CGFloat = frame.height <= 44 && frame.width <= 260 ? 0 : 100_000
+        return compactPenalty + frame.area + distanceFromTop(frame, screen: screen) * 0.1
+    }
+
+    private static func spaceBarIsExpanded(on screen: NSScreen, candidates: [Candidate]) -> Bool {
+        let hasExpandedControl = candidates.contains {
+            screen.frame.insetBy(dx: -2, dy: -2).contains($0.cocoaFrame.center)
+                && $0.cocoaFrame.height > 50
+                && $0.cocoaFrame.width > 70
+        }
+        let pointer = NSEvent.mouseLocation
+        let pointerIsAtTop = screen.frame.contains(pointer) && screen.frame.maxY - pointer.y <= 220
+        return hasExpandedControl || pointerIsAtTop
     }
 }
 

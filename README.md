@@ -93,7 +93,7 @@ current macOS build does not expose the required WindowServer capabilities.
 Namespaces cannot modify Apple's native `Desktop 1`, `Desktop 2`, … strings.
 With **Show names on Mission Control thumbnails** enabled, it detects Mission
 Control through the Dock and adds click-through colored labels containing your
-saved name and symbol. The labels follow the desktop controls until Mission
+saved name. The compact text-only labels follow the desktop controls until Mission
 Control closes. Keyboard shortcuts, trackpad gestures, Dock activation, and Hot
 Corners use the same observer path.
 

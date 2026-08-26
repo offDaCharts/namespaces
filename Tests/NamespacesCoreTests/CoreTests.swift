@@ -139,6 +139,7 @@ final class CoreTests: XCTestCase {
         for index in 1...6 {
             guard let frame = frames[index] else { return XCTFail("Missing frame \(index)") }
             XCTAssertTrue(screen.contains(frame))
+            XCTAssertEqual(frame.height, 22)
             if index > 1 { XCTAssertLessThan(frames[index - 1]!.midX, frame.midX) }
         }
     }
@@ -151,5 +152,11 @@ final class CoreTests: XCTestCase {
         XCTAssertEqual(ordered.count, 8)
         XCTAssertTrue(ordered.allSatisfy { screen.contains($0) })
         for pair in zip(ordered, ordered.dropFirst()) { XCTAssertLessThanOrEqual(pair.0.maxX, pair.1.minX) }
+    }
+
+    func testMissionControlCloseIsImmediateAfterPositiveDetection() {
+        XCTAssertTrue(MissionControlLayout.shouldCloseAfterMissingWindow(hasSeenWindow: true, secondsSinceOpen: 0.1))
+        XCTAssertFalse(MissionControlLayout.shouldCloseAfterMissingWindow(hasSeenWindow: false, secondsSinceOpen: 0.69))
+        XCTAssertTrue(MissionControlLayout.shouldCloseAfterMissingWindow(hasSeenWindow: false, secondsSinceOpen: 0.7))
     }
 }

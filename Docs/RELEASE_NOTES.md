@@ -5,10 +5,14 @@ includes naming, navigation, overlays, notes, safe on-click automations, trackin
 backups, diagnostics, and window-movement controls.
 
 Mission Control naming now detects keyboard, trackpad, Dock, and Hot Corner
-activation and places a reusable colored name/symbol panel over each matching
+activation and places a reusable colored name panel over each matching
 desktop control until Mission Control closes. Settings reports whether exact AX
 alignment is active and provides a direct Accessibility request. A deterministic
 layout fallback prevents missing labels during Mission Control's opening animation.
+The thumbnail treatment now mirrors SpaceJump's official demo more closely:
+compact text-only translucent pills inset at the bottom of each preview, with
+smaller type, restrained rounding, and a minimal shadow. Confirmed Mission
+Control exits remove all panels on the first missing WindowServer scan.
 
 Known boundaries: Apple does not provide public APIs for direct Spaces metadata,
 so enhanced switching/movement uses dynamically resolved private symbols and may

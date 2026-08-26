@@ -27,11 +27,15 @@ boundaries require owner permission, other hardware, or signing credentials.
 - Package backup export/import validation, Markdown notes, transactional restore,
   factory reset, diagnostics, and local capability/privacy UI.
 - Gesture-independent Mission Control detection through Dock AX notifications
-  with a WindowServer fallback, plus per-desktop colored name/symbol panels that
+  with a WindowServer fallback, plus per-desktop colored name panels that
   follow native Mission Control controls and close with Mission Control.
 - Deterministic opening-animation fallback, multi-display candidate scoping,
   reusable click-through panels, and live integration status in Settings.
 - Separate manual/top-of-screen preview strip retained for normal desktop use.
+- Mission Control styling matched to SpaceJump's official demo: text-only,
+  translucent, compact pills inset at the thumbnail bottom with minimal shadow.
+- Close handling now removes panels on the first missing WindowServer scan after
+  positive detection instead of waiting through a three-scan debounce.
 - Optional top-center hover Space strip.
 - Frontmost-window movement and Shift-drag target overlay.
 - Live UI verification: settings, six-Space discovery, rename persistence,
@@ -67,7 +71,7 @@ boundaries require owner permission, other hardware, or signing credentials.
 
 ## Test and Verification Results
 
-- `swift test`: passing (18 tests).
+- `swift test`: passing (19 tests).
 - Debug app bundle codesign verification: passing.
 - Packaged process launch: passing.
 - Live settings accessibility tree and visual inspection: passing.
