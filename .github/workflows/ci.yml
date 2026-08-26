@@ -13,6 +13,12 @@ jobs:
         run: swift package clean && swift test
       - name: Package app
         run: ./Scripts/build-app.sh release
+      - name: Archive self-contained app
+        run: ditto -c -k --sequesterRsrc --keepParent build/Namespaces.app build/Namespaces-macos-universal.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Namespaces-macos-universal
+          path: build/Namespaces-macos-universal.zip
       - name: Verify signature and offline policy
         run: |
           codesign --verify --deep --strict build/Namespaces.app

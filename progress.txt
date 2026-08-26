@@ -13,6 +13,9 @@ boundaries require owner permission, other hardware, or signing credentials.
 
 - Swift Package project, macOS 14 target, core library, app target, and tests.
 - Deterministic build/run scripts producing an ad-hoc-signed `Namespaces.app`.
+- Self-contained universal DMG/ZIP packaging, SHA-256 manifest, GitHub Release
+  publishing workflow, and downloadable CI artifact; destination Macs need no
+  compiler or Xcode installation.
 - AppKit accessory lifecycle, status item/menu, settings window, URL commands.
 - Enhanced provider dynamically resolving WindowServer Space functions.
 - Live discovery verified against six native Spaces on macOS 15.7.4.
@@ -73,6 +76,8 @@ boundaries require owner permission, other hardware, or signing credentials.
 
 - `swift test`: passing (19 tests).
 - Debug app bundle codesign verification: passing.
+- Universal DMG/ZIP integrity, extracted signature, both architectures, and
+  checksum manifest: passing.
 - Packaged process launch: passing.
 - Live settings accessibility tree and visual inspection: passing.
 - Native rename persisted to Application Support: passing.

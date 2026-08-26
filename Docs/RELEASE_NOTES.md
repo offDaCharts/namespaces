@@ -4,6 +4,11 @@ This release is usable on the verified Apple Silicon/macOS 15 configuration and
 includes naming, navigation, overlays, notes, safe on-click automations, tracking,
 backups, diagnostics, and window-movement controls.
 
+Prebuilt universal DMG and ZIP downloads are now published through GitHub
+Releases. Destination Macs do not need Xcode, Swift, Homebrew, or a source clone.
+The release pipeline verifies both architectures, the app signature, archive
+integrity, and SHA-256 checksums before publishing.
+
 Mission Control naming now detects keyboard, trackpad, Dock, and Hot Corner
 activation and places a reusable colored name panel over each matching
 desktop control until Mission Control closes. Settings reports whether exact AX

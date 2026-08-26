@@ -10,3 +10,7 @@ Namespaces 0.1.0 has no third-party runtime packages.
 | ServiceManagement | macOS | Opt-in login item | No |
 | CryptoKit | macOS | Script approval hashes | No |
 | OSLog | macOS | Privacy-safe diagnostics/signposts | No |
+
+Build and release automation uses GitHub's pinned-major `actions/checkout@v4`
+and `actions/upload-artifact@v4`. Neither is included in the application or runs
+on an end user's Mac.

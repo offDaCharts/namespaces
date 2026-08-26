@@ -31,6 +31,21 @@ switching, and augmenting native macOS Spaces.
 
 ## Build and run
 
+### Install without Xcode
+
+For normal use, download the latest self-contained DMG or universal ZIP from
+[GitHub Releases](https://github.com/offDaCharts/namespaces/releases/latest).
+Open the DMG and drag `Namespaces.app` to Applications. Xcode, Swift, Homebrew,
+and this source repository are not required on the destination Mac.
+
+Private builds are ad-hoc signed unless a Developer ID/notary profile is supplied.
+On first launch, Control-click `Namespaces.app`, choose **Open**, and confirm. If
+macOS still blocks it, use **System Settings → Privacy & Security → Open Anyway**.
+Then grant Accessibility if you want Mission Control thumbnail labels and window
+movement.
+
+### Build from source
+
 ```bash
 ./Scripts/run-app.sh
 ```

@@ -10,6 +10,8 @@ Swift 6.2.3.
 - Unicode/diacritic search, recency ranking, CSV escaping, shortcut conflicts,
   automation validation, and cold-launch idle boundaries pass.
 - Universal Release binary contains `x86_64 arm64` slices.
+- Self-contained DMG and universal ZIP verify successfully, preserve the app's
+  code signature, and match the published SHA-256 manifest.
 - App bundle signature, plist, entitlements, DMG filesystem checksum, and SHA-256
   manifest verify successfully.
 - Static offline/dependency and prohibited-log-content scans pass.
