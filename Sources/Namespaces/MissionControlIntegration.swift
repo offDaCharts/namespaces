@@ -5,11 +5,8 @@ import NamespacesCore
 
 /// A resolved place to draw a custom Space name while Mission Control is open.
 struct MissionControlLabelTarget: Equatable {
-    enum Source: Equatable { case accessibility, fallback }
-
     let profile: SpaceProfile
     let frame: CGRect
-    let source: Source
 }
 
 /// Detects Mission Control independently of how it was invoked. Dock
@@ -208,7 +205,13 @@ final class MissionControlObserver {
 enum MissionControlLabelLocator {
     private struct Candidate {
         let index: Int
-        let cocoaFrame: CGRect
+        let thumbnailFrame: CGRect
+    }
+
+    private struct QueueItem {
+        let element: AXUIElement
+        let depth: Int
+        let ancestorFrames: [CGRect]
     }
 
     static func targets(model: AppModel) -> [MissionControlLabelTarget] {
@@ -224,19 +227,18 @@ enum MissionControlLabelLocator {
 
         for (native, profile) in pairs {
             let screen = screen(for: native) ?? NSScreen.main
-            guard let screen, spaceBarIsExpanded(on: screen, candidates: candidates) else { continue }
+            guard let screen else { continue }
             let match = candidates.enumerated().filter { offset, candidate in
                 !claimedCandidates.contains(offset)
                     && candidate.index == native.index
-                    && screen.frame.insetBy(dx: -2, dy: -2).contains(candidate.cocoaFrame.center)
-            }.min { candidateScore($0.element.cocoaFrame, screen: screen) < candidateScore($1.element.cocoaFrame, screen: screen) }
+                    && screen.frame.insetBy(dx: -2, dy: -2).contains(candidate.thumbnailFrame.center)
+            }.min { candidateScore($0.element.thumbnailFrame, screen: screen) < candidateScore($1.element.thumbnailFrame, screen: screen) }
 
-            if let match {
+            if let match, let frame = MissionControlLayout.badgeFrame(in: match.element.thumbnailFrame, screen: screen.frame) {
                 claimedCandidates.insert(match.offset)
                 resolved.append(MissionControlLabelTarget(
                     profile: profile,
-                    frame: badgeFrame(for: match.element.cocoaFrame, name: profile.name, screen: screen),
-                    source: .accessibility
+                    frame: frame
                 ))
             }
         }
@@ -246,38 +248,21 @@ enum MissionControlLabelLocator {
         // Resolve any remaining items positionally within their display.
         var resolvedIDs = Set(resolved.map(\.profile.id))
         for screen in NSScreen.screens {
-            guard spaceBarIsExpanded(on: screen, candidates: candidates) else { continue }
             let remainingPairs = pairs
                 .filter { belongs($0.0, to: screen) && !resolvedIDs.contains($0.1.id) }
                 .sorted { $0.0.index < $1.0.index }
             let remainingCandidates = candidates.enumerated()
-                .filter { !claimedCandidates.contains($0.offset) && screen.frame.insetBy(dx: -2, dy: -2).contains($0.element.cocoaFrame.center) }
-                .sorted { $0.element.cocoaFrame.midX < $1.element.cocoaFrame.midX }
+                .filter { !claimedCandidates.contains($0.offset) && screen.frame.insetBy(dx: -2, dy: -2).contains($0.element.thumbnailFrame.center) }
+                .sorted { $0.element.thumbnailFrame.midX < $1.element.thumbnailFrame.midX }
             for (pair, candidate) in zip(remainingPairs, remainingCandidates) {
+                guard let frame = MissionControlLayout.badgeFrame(in: candidate.element.thumbnailFrame, screen: screen.frame) else { continue }
                 claimedCandidates.insert(candidate.offset)
                 resolvedIDs.insert(pair.1.id)
                 resolved.append(MissionControlLabelTarget(
                     profile: pair.1,
-                    frame: badgeFrame(for: candidate.element.cocoaFrame, name: pair.1.name, screen: screen),
-                    source: .accessibility
+                    frame: frame
                 ))
             }
-        }
-
-        // During the first frames of Mission Control's animation the Dock AX
-        // tree can be temporarily empty. Fill only unresolved Spaces with a
-        // deterministic top-row position, then replace it as soon as AX settles.
-        resolvedIDs = Set(resolved.map(\.profile.id))
-        for screen in NSScreen.screens {
-            guard spaceBarIsExpanded(on: screen, candidates: candidates) else { continue }
-            let screenPairs = pairs.filter { native, profile in
-                !resolvedIDs.contains(profile.id) && belongs(native, to: screen)
-            }
-            resolved.append(contentsOf: fallbackTargets(screenPairs, screen: screen))
-        }
-        if NSScreen.screens.count == 1, let screen = NSScreen.main, spaceBarIsExpanded(on: screen, candidates: candidates) {
-            let missing = pairs.filter { !Set(resolved.map(\.profile.id)).contains($0.1.id) }
-            resolved.append(contentsOf: fallbackTargets(missing, screen: screen))
         }
         return resolved
     }
@@ -285,38 +270,47 @@ enum MissionControlLabelLocator {
     private static func accessibilityCandidates() -> [Candidate] {
         guard let dock = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").first else { return [] }
         let root = AXUIElementCreateApplication(dock.processIdentifier)
-        var queue: [(AXUIElement, Int)] = [(root, 0)]
+        var queue = [QueueItem(element: root, depth: 0, ancestorFrames: [])]
         var cursor = 0
         var candidates: [Candidate] = []
 
         while cursor < queue.count, cursor < 1_500 {
-            let (element, depth) = queue[cursor]
+            let item = queue[cursor]
             cursor += 1
-            if let index = MissionControlLayout.desktopIndex(in: strings(for: element)),
-               let quartzFrame = frame(of: element), quartzFrame.width > 1, quartzFrame.height > 1 {
-                let cocoaFrame = cocoaFrame(fromQuartz: quartzFrame)
-                if NSScreen.screens.contains(where: { $0.frame.insetBy(dx: -4, dy: -4).intersects(cocoaFrame) }) {
-                    candidates.append(Candidate(index: index, cocoaFrame: cocoaFrame))
+            let ownFrame = frame(of: item.element).map(cocoaFrame(fromQuartz:))
+            if let index = MissionControlLayout.desktopIndex(in: strings(for: item.element)) {
+                let possibleFrames = [ownFrame].compactMap { $0 } + Array(item.ancestorFrames.reversed())
+                if let thumbnail = possibleFrames.first(where: { frame in
+                    NSScreen.screens.contains { MissionControlLayout.isExpandedThumbnail(frame, on: $0.frame) }
+                }) {
+                    candidates.append(Candidate(index: index, thumbnailFrame: thumbnail))
                 }
             }
-            guard depth < 12 else { continue }
-            if let children: [AXUIElement] = attribute(kAXChildrenAttribute as CFString, of: element) {
-                queue.append(contentsOf: children.map { ($0, depth + 1) })
-            } else if let visibleChildren: [AXUIElement] = attribute(kAXVisibleChildrenAttribute as CFString, of: element) {
-                queue.append(contentsOf: visibleChildren.map { ($0, depth + 1) })
+            guard item.depth < 12 else { continue }
+            var ancestors = item.ancestorFrames
+            if let ownFrame { ancestors.append(ownFrame) }
+            if ancestors.count > 8 { ancestors.removeFirst(ancestors.count - 8) }
+            if let children: [AXUIElement] = attribute(kAXChildrenAttribute as CFString, of: item.element) {
+                queue.append(contentsOf: children.map { QueueItem(element: $0, depth: item.depth + 1, ancestorFrames: ancestors) })
+            } else if let visibleChildren: [AXUIElement] = attribute(kAXVisibleChildrenAttribute as CFString, of: item.element) {
+                queue.append(contentsOf: visibleChildren.map { QueueItem(element: $0, depth: item.depth + 1, ancestorFrames: ancestors) })
             }
         }
 
-        // The same title may occur on a container and its child. Prefer the
-        // compact text/control frame nearest the top and discard near-duplicates.
+        // The same thumbnail can be represented by a container and multiple
+        // descendants. Keep one exact rectangle per native desktop control.
         candidates.sort {
             if $0.index != $1.index { return $0.index < $1.index }
-            if abs($0.cocoaFrame.midY - $1.cocoaFrame.midY) > 2 { return $0.cocoaFrame.midY > $1.cocoaFrame.midY }
-            return $0.cocoaFrame.area < $1.cocoaFrame.area
+            if abs($0.thumbnailFrame.midY - $1.thumbnailFrame.midY) > 2 { return $0.thumbnailFrame.midY > $1.thumbnailFrame.midY }
+            return $0.thumbnailFrame.area < $1.thumbnailFrame.area
         }
         var unique: [Candidate] = []
         for candidate in candidates where !unique.contains(where: {
-            $0.index == candidate.index && hypot($0.cocoaFrame.midX - candidate.cocoaFrame.midX, $0.cocoaFrame.midY - candidate.cocoaFrame.midY) < 8
+            $0.index == candidate.index
+                && abs($0.thumbnailFrame.minX - candidate.thumbnailFrame.minX) < 3
+                && abs($0.thumbnailFrame.minY - candidate.thumbnailFrame.minY) < 3
+                && abs($0.thumbnailFrame.width - candidate.thumbnailFrame.width) < 3
+                && abs($0.thumbnailFrame.height - candidate.thumbnailFrame.height) < 3
         }) { unique.append(candidate) }
         return unique
     }
@@ -349,36 +343,6 @@ enum MissionControlLabelLocator {
         return CGRect(x: frame.minX, y: mainHeight - frame.maxY, width: frame.width, height: frame.height)
     }
 
-    private static func badgeFrame(for anchor: CGRect, name: String, screen: NSScreen?) -> CGRect {
-        let desiredWidth = min(190, max(54, CGFloat(name.count) * 6.4 + 18))
-        let width = anchor.height > 50 ? min(desiredWidth, max(54, anchor.width - 12)) : desiredWidth
-        let height: CGFloat = 22
-        var x = anchor.midX - width / 2
-        // Compact anchors are Apple's Desktop labels below the previews, so
-        // move upward into the preview. Large anchors are preview controls.
-        var y = anchor.height > 50 ? anchor.minY + 5 : anchor.maxY + 5
-        if let frame = screen?.frame {
-            x = min(max(x, frame.minX + 4), frame.maxX - width - 4)
-            y = min(max(y, frame.minY + 4), frame.maxY - height - 4)
-        }
-        return CGRect(x: x.rounded(), y: y.rounded(), width: width, height: height)
-    }
-
-    private static func fallbackTargets(_ pairs: [(NativeSpace, SpaceProfile)], screen: NSScreen) -> [MissionControlLabelTarget] {
-        let frames = MissionControlLayout.fallbackFrames(
-            items: pairs.map { MissionControlLayoutItem(index: $0.0.index, name: $0.1.name) },
-            screenFrame: screen.frame
-        )
-        return pairs.compactMap { pair in
-            guard let frame = frames[pair.0.index] else { return nil }
-            return MissionControlLabelTarget(
-                profile: pair.1,
-                frame: frame,
-                source: .fallback
-            )
-        }
-    }
-
     private static func screen(for native: NativeSpace) -> NSScreen? {
         NSScreen.screens.first { belongs(native, to: $0) }
     }
@@ -394,19 +358,7 @@ enum MissionControlLabelLocator {
     }
 
     private static func candidateScore(_ frame: CGRect, screen: NSScreen?) -> CGFloat {
-        let compactPenalty: CGFloat = frame.height <= 44 && frame.width <= 260 ? 0 : 100_000
-        return compactPenalty + frame.area + distanceFromTop(frame, screen: screen) * 0.1
-    }
-
-    private static func spaceBarIsExpanded(on screen: NSScreen, candidates: [Candidate]) -> Bool {
-        let hasExpandedControl = candidates.contains {
-            screen.frame.insetBy(dx: -2, dy: -2).contains($0.cocoaFrame.center)
-                && $0.cocoaFrame.height > 50
-                && $0.cocoaFrame.width > 70
-        }
-        let pointer = NSEvent.mouseLocation
-        let pointerIsAtTop = screen.frame.contains(pointer) && screen.frame.maxY - pointer.y <= 220
-        return hasExpandedControl || pointerIsAtTop
+        distanceFromTop(frame, screen: screen) + frame.area * 0.0001
     }
 }
 

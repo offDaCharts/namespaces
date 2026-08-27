@@ -21,6 +21,7 @@ struct SettingsView: View {
             List(filteredSections, selection: $selection) { section in Label(section.rawValue, systemImage: section.icon).tag(section) }
                 .navigationSplitViewColumnWidth(min: 180, ideal: 200)
                 .searchable(text: $search, prompt: "Search Settings")
+                .listStyle(.sidebar)
         } detail: {
             Group { switch selection ?? .spaces {
             case .spaces: SpacesSettingsView()
@@ -33,7 +34,7 @@ struct SettingsView: View {
             case .general: GeneralSettingsView()
             case .license: LicenseSettingsView()
             case .about: AboutView()
-            } }.environmentObject(model)
+            } }.environmentObject(model).navigationTitle((selection ?? .spaces).rawValue)
         }
         .alert("DeskOrbit", isPresented: Binding(get: { model.lastError != nil }, set: { if !$0 { model.lastError = nil } })) { Button("OK") { model.lastError = nil } } message: { Text(model.lastError ?? "") }
     }
@@ -66,18 +67,26 @@ private struct ShortcutsSettingsView: View {
 
 private struct Page<Content: View>: View {
     let title: String; let subtitle: String; @ViewBuilder var content: Content
-    var body: some View { ScrollView { VStack(alignment: .leading, spacing: 18) { Text(title).font(.largeTitle.bold()); Text(subtitle).foregroundStyle(.secondary); content }.padding(28).frame(maxWidth: .infinity, alignment: .leading) } }
+    var body: some View { ScrollView { VStack(alignment: .leading, spacing: 14) { Text(title).font(.title.bold()); Text(subtitle).font(.callout).foregroundStyle(.secondary); content }.padding(24).frame(maxWidth: 920, alignment: .leading).frame(maxWidth: .infinity, alignment: .topLeading) } }
 }
 
 private struct SpacesSettingsView: View {
     @EnvironmentObject var model: AppModel
-    var body: some View { Page(title: "Spaces", subtitle: "Names, symbols, colors, tracking, and direct shortcuts for native macOS Spaces.") {
-        HStack { Button("Refresh Spaces") { model.refreshSpaces() }; Text("\(model.nativeSpaces.count) discovered via \(model.providerName)").foregroundStyle(.secondary); Spacer() }
-        ForEach(model.nativeSpaces) { native in
-            if let profile = model.profile(for: native), let index = model.data.spaces.firstIndex(where: { $0.id == profile.id }) {
-                SpaceProfileEditor(profile: Binding(get: { model.data.spaces[index] }, set: { model.updateProfile($0) }), native: native)
+    var body: some View { Page(title: "Spaces", subtitle: "Give every macOS desktop a name and a visual identity.") {
+        HStack(spacing: 8) {
+            Label("\(model.nativeSpaces.count) Spaces", systemImage: "rectangle.3.group")
+            Text("· \(model.providerName)").foregroundStyle(.secondary)
+            Spacer()
+            Button { model.refreshSpaces() } label: { Label("Refresh", systemImage: "arrow.clockwise") }
+        }.font(.callout)
+        LazyVStack(spacing: 1) {
+            ForEach(model.nativeSpaces) { native in
+                if let profile = model.profile(for: native), let index = model.data.spaces.firstIndex(where: { $0.id == profile.id }) {
+                    SpaceProfileEditor(profile: Binding(get: { model.data.spaces[index] }, set: { model.updateProfile($0) }), native: native)
+                    if native.id != model.nativeSpaces.last?.id { Divider().padding(.leading, 50) }
+                }
             }
-        }
+        }.padding(.horizontal, 12).background(.quaternary.opacity(0.28), in: RoundedRectangle(cornerRadius: 10))
         let unmatched = model.data.spaces.filter { model.native(for: $0) == nil }
         if !unmatched.isEmpty { Divider(); Text("Saved but currently unmatched").font(.headline); Text("DeskOrbit keeps these records instead of guessing and attaching their notes or time to the wrong desktop.").font(.caption).foregroundStyle(.secondary); ForEach(unmatched) { profile in HStack { Image(systemName: "questionmark.diamond").foregroundStyle(.orange); VStack(alignment: .leading) { Text(profile.name); Text("Previously desktop \(profile.lastKnownIndex.map(String.init) ?? "?") · Native ID \(profile.nativeID)").font(.caption).foregroundStyle(.secondary) }; Spacer(); Menu("Link to Current Space…") { ForEach(model.nativeSpaces) { native in Button("\(native.displayName) · Desktop \(native.index)") { model.linkUnmatchedProfile(profile.id, to: native) } } } }.padding(10).background(.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 8)) } }
         if model.nativeSpaces.isEmpty { ContentUnavailableView("No Spaces discovered", systemImage: "rectangle.3.group", description: Text(model.capabilityMessage)) }
@@ -94,7 +103,13 @@ private struct SpaceProfileEditor: View {
     @EnvironmentObject var model: AppModel
     @Binding var profile: SpaceProfile
     let native: NativeSpace
-    private let symbols = ["square.grid.2x2", "hammer", "terminal", "globe", "doc.text", "paintpalette", "music.note", "person.2", "book", "briefcase", "house", "sparkles"]
+    @State private var showsDetails = false
+    private let symbols: [(String, String)] = [
+        ("Grid", "square.grid.2x2"), ("Build", "hammer"), ("Terminal", "terminal"),
+        ("Web", "globe"), ("Documents", "doc.text"), ("Design", "paintpalette"),
+        ("Music", "music.note"), ("Team", "person.2"), ("Reading", "book"),
+        ("Work", "briefcase"), ("Home", "house"), ("Ideas", "sparkles")
+    ]
     private let colors = [
         ColorOption(name: "Namespace Purple", hex: "#7C5CFC"),
         ColorOption(name: "Blue", hex: "#0A84FF"),
@@ -116,33 +131,51 @@ private struct SpaceProfileEditor: View {
         return [("None", nil)] + keyCodes.enumerated().map { ("⌥\($0.offset + 1)", ShortcutSpec(keyCode: $0.element, modifiers: 2048, display: "⌥\($0.offset + 1)")) }
     }()
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: profile.symbol).font(.title2).foregroundStyle(Color(hex: profile.colorHex)).frame(width: 40)
-                TextField("Space name", text: $profile.name).font(.title3.bold())
-                Spacer(); Text("\(native.displayName) · \(native.kind == .fullscreen ? "Fullscreen" : "Desktop") \(native.index)").font(.caption).foregroundStyle(.secondary)
-                if native.isActive { Text("ACTIVE").font(.caption2.bold()).padding(.horizontal, 7).padding(.vertical, 3).background(.green.opacity(0.2), in: Capsule()) }
-            }
-            HStack {
-                Picker("Symbol", selection: $profile.symbol) { ForEach(symbols, id: \.self) { Label($0, systemImage: $0).tag($0) } }.frame(width: 190)
-                Picker("Color", selection: $profile.colorHex) {
-                    ForEach(colorOptions) { option in
-                        Label {
-                            Text("\(option.name) · \(option.hex)")
-                        } icon: {
-                            Image(nsImage: swatchImage(option.hex)).renderingMode(.original)
-                        }
-                        .labelStyle(.titleAndIcon)
-                        .tag(option.hex)
-                    }
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8).fill(Color(hex: profile.colorHex).opacity(0.20))
+                    Image(systemName: profile.symbol).font(.system(size: 16, weight: .medium)).foregroundStyle(Color(hex: profile.colorHex))
+                }.frame(width: 34, height: 34)
+                VStack(alignment: .leading, spacing: 2) {
+                    TextField("Space name", text: $profile.name).font(.body.weight(.semibold)).textFieldStyle(.plain)
+                    Text("\(native.displayName) · \(native.kind == .fullscreen ? "Fullscreen" : "Desktop") \(native.index)")
+                        .font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
-                .frame(width: 230)
-                Toggle("Track time", isOn: $profile.trackingEnabled); Toggle("Billable", isOn: $profile.billable)
-                Picker("Shortcut", selection: $profile.shortcut) { ForEach(shortcutOptions, id: \.0) { option in Text(option.0).tag(option.1) } }.frame(width: 130)
-                Spacer(); Button("Switch") { model.switchTo(profile) }
+                Spacer(minLength: 8)
+                if native.isActive { Label("Current", systemImage: "circle.fill").font(.caption).foregroundStyle(.green) }
+                Button("Switch") { model.switchTo(profile) }.controlSize(.small).disabled(native.isActive)
+                Button { withAnimation(.easeInOut(duration: 0.16)) { showsDetails.toggle() } } label: {
+                    Image(systemName: "chevron.right").rotationEffect(.degrees(showsDetails ? 90 : 0)).frame(width: 16)
+                }.buttonStyle(.plain).foregroundStyle(.secondary).help(showsDetails ? "Hide options" : "Show options")
             }
-            TextField("Search aliases, separated by commas", text: Binding(get: { profile.aliases.joined(separator: ", ") }, set: { profile.aliases = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty } }))
-        }.padding(14).background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+            if showsDetails {
+                HStack(spacing: 12) {
+                    Picker("Icon", selection: $profile.symbol) {
+                        ForEach(symbols, id: \.1) { name, symbol in Label(name, systemImage: symbol).tag(symbol) }
+                    }.frame(width: 145)
+                    Picker("Color", selection: $profile.colorHex) {
+                        ForEach(colorOptions) { option in
+                            Label {
+                                Text("\(option.name) · \(option.hex)")
+                            } icon: {
+                                Image(nsImage: swatchImage(option.hex)).renderingMode(.original)
+                            }
+                            .labelStyle(.titleAndIcon)
+                            .tag(option.hex)
+                        }
+                    }.frame(width: 190)
+                    Toggle("Track time", isOn: $profile.trackingEnabled)
+                    Toggle("Billable", isOn: $profile.billable)
+                    Picker("Shortcut", selection: $profile.shortcut) {
+                        ForEach(shortcutOptions, id: \.0) { option in Text(option.0).tag(option.1) }
+                    }.frame(width: 125)
+                    Spacer(minLength: 0)
+                }.controlSize(.small)
+                TextField("Search aliases, separated by commas", text: Binding(get: { profile.aliases.joined(separator: ", ") }, set: { profile.aliases = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty } }))
+                    .textFieldStyle(.roundedBorder).controlSize(.small).padding(.leading, 44)
+            }
+        }.padding(.vertical, 10)
     }
 
     private var colorOptions: [ColorOption] {
@@ -321,7 +354,7 @@ private struct DataSettingsView: View {
     private func exportCSV() { let panel = NSSavePanel(); panel.nameFieldStringValue = "Namespaces-Tracking.csv"; guard panel.runModal() == .OK, let url = panel.url else { return }; do { try CSVExporter.trackingCSV(segments: model.data.segments, spaces: model.data.spaces).write(to: url, atomically: true, encoding: .utf8) } catch { model.lastError = error.localizedDescription } }
     private func exportDiagnostics() { let capabilities = ["enumerate": model.provider.capabilities.contains(.enumerate), "switch": model.provider.capabilities.contains(.switchSpace), "moveWindow": model.provider.capabilities.contains(.moveWindow), "labels": model.provider.capabilities.contains(.missionControlLabels)]; let text = """
     Namespaces diagnostics (privacy-redacted)
-    Version: 0.1.0 (1)
+    Version: \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development") (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "development"))
     macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)
     Architecture: \(ProcessInfo.processInfo.machineHardwareName)
     Provider: \(model.providerName)
@@ -396,7 +429,7 @@ private struct LicenseSettingsView: View {
 
 private struct AboutView: View {
     @EnvironmentObject var model: AppModel
-    private var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.6" }
+    private var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.0" }
     var body: some View { Page(title: "DeskOrbit", subtitle: "Name, switch, and organize your Mac Spaces.") {
         Image(systemName: "square.grid.2x2.fill").font(.system(size: 72)).foregroundStyle(.tint); Text("Version \(version)").font(.headline); Text("Kauibungalow LLC · macOS \(ProcessInfo.processInfo.operatingSystemVersionString)")
         Divider(); Text("DeskOrbit adds its own labels and controls around native Spaces. It does not modify Apple's Desktop labels, inject code into Dock, disable SIP, capture the screen, or upload usage data.").foregroundStyle(.secondary)

@@ -36,10 +36,12 @@ final class WindowCoordinator {
         let view = QuickSwitcherView(onClose: { [weak self] in self?.switcherPanel?.orderOut(nil) }).environmentObject(model)
         let panel = switcherPanel ?? NSPanel(contentViewController: NSHostingController(rootView: view))
         panel.styleMask = [.titled, .fullSizeContentView, .nonactivatingPanel]; panel.titleVisibility = .hidden; panel.titlebarAppearsTransparent = true
+        panel.isOpaque = false; panel.backgroundColor = .clear; panel.hasShadow = true
+        panel.contentView?.wantsLayer = true; panel.contentView?.layer?.cornerRadius = 14; panel.contentView?.layer?.masksToBounds = true
         panel.isFloatingPanel = true; panel.level = .popUpMenu; panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
-        panel.setContentSize(NSSize(width: 430, height: 430)); panel.isReleasedWhenClosed = false
+        panel.setContentSize(NSSize(width: 380, height: 410)); panel.isReleasedWhenClosed = false
         let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) }) ?? NSScreen.main
-        if let frame = screen?.visibleFrame { panel.setFrameOrigin(NSPoint(x: frame.midX - 215, y: frame.midY - 180)) }
+        if let frame = screen?.visibleFrame { panel.setFrameOrigin(NSPoint(x: frame.midX - 190, y: frame.midY - 170)) }
         switcherPanel = panel; panel.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -146,16 +148,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let interval = Metrics.signposter.beginInterval("Menu rebuild")
         defer { Metrics.signposter.endInterval("Menu rebuild", interval) }
         menu.removeAllItems()
-        if let active = model.activeProfile {
-            let header = NSMenuItem(title: active.name, action: #selector(openActiveNote), keyEquivalent: ""); header.image = NSImage(systemSymbolName: active.symbol, accessibilityDescription: nil); header.target = self; menu.addItem(header)
+        if let active = model.activeProfile, let native = model.native(for: active) {
+            let header = NSMenuItem(title: active.name, action: #selector(openActiveNote), keyEquivalent: "")
+            header.image = numberedColorTile(number: native.index, hex: active.colorHex, size: 18)
+            header.target = self; header.toolTip = "Open the current Space note"; menu.addItem(header)
         }
         menu.addItem(.separator())
         var lastDisplay: String?
         for native in model.nativeSpaces {
             if native.displayID != lastDisplay { let heading = NSMenuItem(title: native.displayName, action: nil, keyEquivalent: ""); heading.isEnabled = false; menu.addItem(heading); lastDisplay = native.displayID }
             guard let profile = model.profile(for: native) else { continue }
-            let item = NSMenuItem(title: "\(native.index). \(profile.name)", action: #selector(selectSpace(_:)), keyEquivalent: native.index < 10 ? String(native.index) : "")
-            item.target = self; item.representedObject = profile.id.uuidString; item.state = native.isActive ? .on : .off; item.image = NSImage(systemSymbolName: profile.symbol, accessibilityDescription: nil); menu.addItem(item)
+            let item = NSMenuItem(title: profile.name, action: #selector(selectSpace(_:)), keyEquivalent: native.index < 10 ? String(native.index) : "")
+            item.target = self; item.representedObject = profile.id.uuidString; item.state = native.isActive ? .on : .off
+            item.image = numberedColorTile(number: native.index, hex: profile.colorHex, size: 18)
+            item.toolTip = "\(native.displayName) · Desktop \(native.index)"; menu.addItem(item)
         }
         menu.addItem(.separator())
         let quick = NSMenuItem(title: "Quick Switcher…", action: #selector(showSwitcher), keyEquivalent: " "); quick.keyEquivalentModifierMask = [.option]; quick.target = self; menu.addItem(quick)
@@ -163,7 +169,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if model.provider.capabilities.contains(.moveWindow) {
             let moveParent = NSMenuItem(title: "Move Frontmost Window", action: nil, keyEquivalent: "")
             let moveMenu = NSMenu()
-            for profile in model.profilesInDisplayOrder where profile.id != model.activeProfile?.id { let item = NSMenuItem(title: profile.name, action: #selector(moveWindow(_:)), keyEquivalent: ""); item.target = self; item.representedObject = profile.id.uuidString; moveMenu.addItem(item) }
+            for profile in model.profilesInDisplayOrder where profile.id != model.activeProfile?.id { let item = NSMenuItem(title: profile.name, action: #selector(moveWindow(_:)), keyEquivalent: ""); item.target = self; item.representedObject = profile.id.uuidString; if let native = model.native(for: profile) { item.image = numberedColorTile(number: native.index, hex: profile.colorHex, size: 16) }; moveMenu.addItem(item) }
             moveParent.submenu = moveMenu; menu.addItem(moveParent)
             if model.canUndoWindowMove { let undo = NSMenuItem(title: "Undo Last Window Move", action: #selector(undoWindowMove), keyEquivalent: "z"); undo.target = self; menu.addItem(undo) }
         }
@@ -186,6 +192,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let updates = NSMenuItem(title: "Check for Updates…", action: #selector(checkUpdates), keyEquivalent: ""); updates.target = self; menu.addItem(updates)
         let license = NSMenuItem(title: "License: \(model.license.statusTitle)", action: #selector(showSettings), keyEquivalent: ""); license.target = self; menu.addItem(license)
         menu.addItem(.separator()); let quit = NSMenuItem(title: "Quit DeskOrbit", action: #selector(quit), keyEquivalent: "q"); quit.target = self; menu.addItem(quit)
+    }
+
+    private func numberedColorTile(number: Int, hex: String, size: CGFloat) -> NSImage {
+        let image = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
+            let value = UInt64(hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted), radix: 16) ?? 0x7C5CFC
+            let color = NSColor(red: CGFloat((value >> 16) & 0xff) / 255, green: CGFloat((value >> 8) & 0xff) / 255, blue: CGFloat(value & 0xff) / 255, alpha: 0.88)
+            color.setFill(); NSBezierPath(roundedRect: rect.insetBy(dx: 1, dy: 1), xRadius: 4, yRadius: 4).fill()
+            let text = "\(number)" as NSString
+            let font = NSFont.monospacedDigitSystemFont(ofSize: max(8, size * 0.52), weight: .semibold)
+            let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: NSColor.white]
+            let textSize = text.size(withAttributes: attributes)
+            text.draw(at: NSPoint(x: rect.midX - textSize.width / 2, y: rect.midY - textSize.height / 2), withAttributes: attributes)
+            return true
+        }
+        image.isTemplate = false
+        return image
     }
 
     private func configureHotKeys() {

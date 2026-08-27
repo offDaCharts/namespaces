@@ -75,7 +75,7 @@ final class OverlayController {
         model.refreshSpaces()
         refreshMissionControlLabels()
         missionControlRefreshTimer?.invalidate()
-        missionControlRefreshTimer = Timer.scheduledTimer(withTimeInterval: 0.12, repeats: true) { [weak self] _ in
+        missionControlRefreshTimer = Timer.scheduledTimer(withTimeInterval: 0.06, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refreshMissionControlLabels() }
         }
         if let missionControlRefreshTimer { RunLoop.main.add(missionControlRefreshTimer, forMode: .common) }
@@ -105,10 +105,10 @@ final class OverlayController {
             if panel.frame != target.frame { panel.setFrame(target.frame, display: true) }
             panel.orderFrontRegardless()
         }
-        if targets.contains(where: { $0.source == .accessibility }) {
+        if !targets.isEmpty {
             model.missionControlOverlayStatus = "Active — labels aligned to Mission Control thumbnails"
         } else if AXIsProcessTrusted() {
-            model.missionControlOverlayStatus = "Active — using animated layout fallback"
+            model.missionControlOverlayStatus = "Active — waiting for exact thumbnail bounds"
         } else {
             model.missionControlOverlayStatus = "Active — grant Accessibility for exact thumbnail alignment"
         }
@@ -149,13 +149,14 @@ private struct MissionControlBadgeView: View {
     let activeID: UUID?
 
     var body: some View {
-        Text(profile.name).lineLimit(1)
-        .font(.system(size: 11, weight: .semibold))
+        Text(profile.name).lineLimit(1).minimumScaleFactor(0.75)
+        .font(.system(size: 12, weight: .semibold, design: .rounded))
         .foregroundStyle(.white)
         .padding(.horizontal, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(hex: profile.colorHex).opacity(profile.id == activeID ? 0.78 : 0.70), in: RoundedRectangle(cornerRadius: 5))
-        .shadow(color: .black.opacity(0.22), radius: 1.5, y: 1)
+        .background(Color(hex: profile.colorHex).opacity(profile.id == activeID ? 0.76 : 0.68), in: RoundedRectangle(cornerRadius: 5))
+        .overlay { RoundedRectangle(cornerRadius: 5).stroke(.white.opacity(0.14), lineWidth: 0.5) }
+        .shadow(color: .black.opacity(0.14), radius: 1, y: 0.5)
     }
 }
 

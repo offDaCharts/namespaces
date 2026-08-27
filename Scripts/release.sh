@@ -19,7 +19,7 @@ codesign --verify --deep --strict "$app_path"
 dmg_path="$release_dir/DeskOrbit-$version.dmg"
 zip_path="$release_dir/DeskOrbit-$version-macos-universal.zip"
 checksums_path="$release_dir/SHA256SUMS.txt"
-rm -f "$dmg_path" "$dmg_path.sha256" "$zip_path" "$checksums_path"
+rm -f "$dmg_path" "$dmg_path.sha256" "$zip_path" "$checksums_path" "$release_dir/appcast.xml"
 ditto -c -k --sequesterRsrc --keepParent "$app_path" "$zip_path"
 
 notary_profile=${DESKORBIT_NOTARY_PROFILE:-${NAMESPACES_NOTARY_PROFILE:-}}
@@ -57,7 +57,7 @@ fi
 )
 
 sparkle_tools=${DESKORBIT_SPARKLE_TOOLS:-"$project_dir/.build/artifacts/sparkle/Sparkle/bin"}
-if [[ -x "$sparkle_tools/generate_appcast" ]]; then
+if [[ -x "$sparkle_tools/generate_appcast" && -n "${DESKORBIT_SPARKLE_PRIVATE_KEY_FILE:-}" ]]; then
     sparkle_dir="$project_dir/build/sparkle"
     mkdir -p "$sparkle_dir"
     cp "$zip_path" "$sparkle_dir/${zip_path:t}"
@@ -68,9 +68,7 @@ if [[ -x "$sparkle_tools/generate_appcast" ]]; then
         --maximum-versions 1
         -o appcast.xml
     )
-    if [[ -n "${DESKORBIT_SPARKLE_PRIVATE_KEY_FILE:-}" ]]; then
-        sparkle_args+=(--ed-key-file "$DESKORBIT_SPARKLE_PRIVATE_KEY_FILE")
-    fi
+    sparkle_args+=(--ed-key-file "$DESKORBIT_SPARKLE_PRIVATE_KEY_FILE")
     "$sparkle_tools/generate_appcast" "${sparkle_args[@]}" "$sparkle_dir"
     cp "$sparkle_dir/appcast.xml" "$release_dir/appcast.xml"
 fi

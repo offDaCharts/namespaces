@@ -1,6 +1,6 @@
 # Architecture
 
-Last verified: 2026-08-26, Namespaces 0.1.0.
+Last verified: 2026-08-27.
 
 `NamespacesCore` owns Codable domain records, SwiftData/JSON persistence,
 search, topology comparison, reconciliation scoring, backup packaging, and CSV.
@@ -22,10 +22,11 @@ the project reproducible without generated `.xcodeproj` files.
 notifications, independent of the input method that opened Mission Control. A
 conservative, throttled `CGWindowListCopyWindowInfo` scan repairs missed open or
 close transitions. `MissionControlLabelLocator` walks only the Dock AX tree,
-matches Apple's desktop ordinals to the existing native Space topology, converts
-Quartz coordinates to AppKit coordinates, and produces one label target per
-desktop. A deterministic top-row layout covers the brief opening animation
-before the AX hierarchy settles.
+matches Apple's desktop ordinals to the existing native Space topology, walks
+from compact named children to thumbnail-shaped ancestors when necessary,
+converts Quartz coordinates to AppKit coordinates, and produces one exact label
+target per desktop. Compact native text controls and full-width containers are
+rejected. There is intentionally no estimated top-row fallback.
 
 `OverlayController` owns one reusable, nonactivating, click-through `NSPanel`
 per visible desktop. Panels use the screen-saver window level, join all Spaces,
@@ -33,4 +34,5 @@ refresh only while Mission Control is active, and disappear after the confirmed
 close transition. This is an overlay: Namespaces never injects into the Dock or
 changes Apple's native Desktop strings. Mission Control AX details are
 undocumented, so the integration exposes status, preserves names when unavailable,
-and fails closed after macOS changes.
+and fails closed after macOS changes. While exact bounds are unavailable it
+draws nothing and reports that it is waiting for thumbnail geometry.

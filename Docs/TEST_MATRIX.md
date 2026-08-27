@@ -1,6 +1,6 @@
 # Compatibility and Release Test Matrix
 
-Last verified: 2026-08-26, Namespaces 0.1.0.
+Last verified: 2026-08-27.
 
 | Configuration | Build | Discovery | Switching | Overlay | Window move | Status |
 |---|---:|---:|---:|---:|---:|---|
@@ -19,10 +19,12 @@ offline launch and operation; signature verification.
 
 Accessibility permission is user-controlled. Until it is granted, focused-window
 movement, Shift-drag, and exact Mission Control thumbnail alignment are correctly
-reported unavailable. The label fallback remains local and noninteractive.
+reported unavailable. Labels remain hidden until exact thumbnail bounds are available.
 
 Mission Control regression checks: Dock AX notification setup/teardown; gesture-
 independent WindowServer detection; opening grace and first-scan close; native ordinal parsing;
-fallback containment and ordering; long-name non-overlap; multiple-display
-candidate scoping; panel reuse; disabled preference; screen topology changes; and
-Accessibility revoked/restored while running.
+compact-label and full-width-container rejection; multiple-display candidate
+scoping; panel reuse; disabled preference; screen topology changes; and
+Accessibility revoked/restored while running. Pure geometry tests cover 1–16
+thumbnails across standard, portrait, ultrawide, negative-origin, and
+multi-display-style frames. No release may reintroduce estimated positions.

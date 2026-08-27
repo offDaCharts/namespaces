@@ -1,18 +1,16 @@
+import CoreGraphics
 import Foundation
 
-public struct MissionControlLayoutItem: Equatable, Sendable {
-    public let index: Int
-    public let name: String
-
-    public init(index: Int, name: String) {
-        self.index = index
-        self.name = name
-    }
-}
-
-/// Pure layout/parsing rules shared by the Mission Control integration and
-/// tests. Keeping this free of AppKit makes animation fallbacks deterministic.
+/// Pure geometry/parsing rules used by the Mission Control integration.
+///
+/// Namespaces never invents Mission Control positions. The app supplies frames
+/// read from the Dock accessibility hierarchy and this type only validates a
+/// frame and derives a badge that remains centered inside that thumbnail.
 public enum MissionControlLayout {
+    public static let badgeHeight: CGFloat = 22
+    public static let horizontalInset: CGFloat = 6
+    public static let bottomInset: CGFloat = 5
+
     public static func shouldCloseAfterMissingWindow(hasSeenWindow: Bool, secondsSinceOpen: TimeInterval) -> Bool {
         hasSeenWindow || secondsSinceOpen >= 0.7
     }
@@ -28,29 +26,35 @@ public enum MissionControlLayout {
         return nil
     }
 
-    public static func fallbackFrames(items: [MissionControlLayoutItem], screenFrame: CGRect) -> [Int: CGRect] {
-        guard !items.isEmpty else { return [:] }
-        let sorted = items.sorted { $0.index < $1.index }
-        let available = max(300, screenFrame.size.width - 120)
-        let slot = min(150, available / CGFloat(sorted.count))
-        let total = slot * CGFloat(sorted.count)
-        let startX = screenFrame.origin.x + screenFrame.size.width / 2 - total / 2
-        var frames: [Int: CGRect] = [:]
-        for (offset, item) in sorted.enumerated() {
-            let maximumWidth = max(CGFloat(52), slot - 8)
-            let desiredWidth = max(CGFloat(54), CGFloat(item.name.count) * 6.4 + 18)
-            let width = min(maximumWidth, desiredWidth)
-            let offsetX = CGFloat(offset) * slot
-            let centeredInset = (slot - width) / 2
-            let originX = startX + offsetX + centeredInset
-            // Approximate the lower inset of Mission Control's expanded
-            // thumbnail strip. Exact placement replaces this as soon as AX
-            // exposes the native desktop controls.
-            let originY = screenFrame.origin.y + screenFrame.size.height - CGFloat(136)
-            let origin = CGPoint(x: originX, y: originY)
-            let size = CGSize(width: width, height: 22)
-            frames[item.index] = CGRect(origin: origin, size: size)
-        }
-        return frames
+    /// Rejects compact native labels, full-width Space-bar containers, and
+    /// ordinary windows. An accepted frame must look like an expanded desktop
+    /// thumbnail in the upper Mission Control band of its display.
+    public static func isExpandedThumbnail(_ frame: CGRect, on screen: CGRect) -> Bool {
+        guard frame.width >= 70, frame.height >= 50,
+              frame.width <= screen.width * 0.60,
+              frame.height <= screen.height * 0.34,
+              frame.midX >= screen.minX - 2, frame.midX <= screen.maxX + 2
+        else { return false }
+
+        let distanceFromTop = screen.maxY - frame.maxY
+        let upperBandDepth = min(CGFloat(360), screen.height * 0.40)
+        return distanceFromTop >= -8
+            && distanceFromTop <= upperBandDepth
+            && frame.minY >= screen.maxY - upperBandDepth - 40
+    }
+
+    /// Matches SpaceJump's demonstrated treatment: a restrained, nearly
+    /// full-width badge inset into the bottom of the real thumbnail.
+    public static func badgeFrame(in thumbnail: CGRect, screen: CGRect) -> CGRect? {
+        guard isExpandedThumbnail(thumbnail, on: screen) else { return nil }
+        let width = thumbnail.width - horizontalInset * 2
+        guard width >= 54 else { return nil }
+        let result = CGRect(
+            x: thumbnail.minX + horizontalInset,
+            y: thumbnail.minY + bottomInset,
+            width: width,
+            height: badgeHeight
+        ).integral
+        return screen.insetBy(dx: 2, dy: 2).contains(result) ? result : nil
     }
 }

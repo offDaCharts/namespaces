@@ -1,31 +1,26 @@
-# DeskOrbit 0.1.6 — Launch Candidate
+# DeskOrbit 0.2.0 — Exact Mission Control Alignment
 
-This release introduces the DeskOrbit name, Kauibungalow LLC bundle identity,
-a 14-day full-feature trial, secure Keychain license storage, Lemon Squeezy
-license activation for up to three Macs, and signed Sparkle updates. It is usable
-on the verified Apple Silicon/macOS 15 configuration and
-includes naming, navigation, overlays, notes, safe on-click automations, tracking,
-backups, diagnostics, and window-movement controls.
+This release replaces DeskOrbit's Mission Control positioning system and gives
+the app's primary interface a cohesive native-macOS redesign.
 
-Prebuilt universal DMG and ZIP downloads are now published through GitHub
-Releases. Destination Macs do not need Xcode, Swift, Homebrew, or a source clone.
-The release pipeline verifies both architectures, the app signature, archive
-integrity, and SHA-256 checksums before publishing.
+Mission Control labels are now derived only from the Dock accessibility tree's
+actual expanded thumbnail rectangles. Compact `Desktop N` text controls,
+full-width containers, and guessed equal-width positions are rejected. Every
+badge inherits its thumbnail's center and usable width and is refreshed during
+the Mission Control animation. When exact geometry is temporarily unavailable,
+DeskOrbit waits without drawing an incorrect overlay.
 
-Mission Control naming now detects keyboard, trackpad, Dock, and Hot Corner
-activation and places a reusable colored name panel over each matching
-desktop control until Mission Control closes. Settings reports whether exact AX
-alignment is active and provides a direct Accessibility request. A deterministic
-layout fallback prevents missing labels during Mission Control's opening animation.
-The thumbnail treatment now mirrors SpaceJump's official demo more closely:
-compact text-only translucent pills inset at the bottom of each preview, with
-smaller type, restrained rounding, and a minimal shadow. Confirmed Mission
-Control exits remove all panels on the first missing WindowServer scan.
+The label treatment is quieter and closer to SpaceJump's demonstrated design:
+nearly full-width translucent color plates, restrained 12-point type, a fine
+highlight, and minimal shadow. Automated tests cover up to 16 Spaces across
+standard, portrait, ultrawide, negative-origin, and multi-display-style frames.
 
-Known boundaries: Apple does not provide public APIs for direct Spaces metadata,
-so enhanced switching/movement uses dynamically resolved private symbols and may
-degrade after macOS updates. DeskOrbit overlays do not rename Apple's own Desktop
-labels. Accessibility is required for thumbnail-aligned Mission Control labels,
-focused-window movement, and Shift-drag. Developer ID signing and notarization are
-configured in release automation; Intel hardware, multi-display, and AX
-window-move checks still require their respective hardware and user permission.
+The quick switcher is now a compact material panel with numbered color tiles,
+inline search, a display filter, previous-Space access, native desktop metadata,
+and lower-key selection styling. Space settings use a dense inset list with
+advanced controls disclosed on demand. The menu-bar menu uses the same numbered
+color language, making Space identity consistent throughout the app.
+
+The update preserves all existing names, colors, notes, automations, tracking
+history, shortcuts, preferences, and license state in the existing local store
+and Keychain locations.
