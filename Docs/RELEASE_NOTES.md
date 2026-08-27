@@ -1,4 +1,4 @@
-# Namespaces 0.1.2 — Private Build
+# Namespaces 0.1.3 — Private Build
 
 This release is usable on the verified Apple Silicon/macOS 15 configuration and
 includes naming, navigation, overlays, notes, safe on-click automations, tracking,
@@ -24,6 +24,9 @@ labels do not linger over ordinary application windows after dismissal.
 Version 0.1.2 restores full-width fallback spacing: eight or more Space labels
 now follow Mission Control's display-wide thumbnail strip instead of becoming
 compressed into the center of the screen.
+Version 0.1.3 reverts that 0.1.2 spacing experiment and restores the exact
+known-good fallback geometry shipped in 0.1.1, while retaining 0.1.1's fast
+dismissal behavior.
 
 Installing a newer app bundle preserves all user data because settings and
 content live outside the bundle in `~/Library/Application Support/Namespaces`.

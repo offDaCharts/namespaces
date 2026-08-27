@@ -1,6 +1,6 @@
 # Compatibility and Release Test Matrix
 
-Last verified: 2026-08-26, Namespaces 0.1.2.
+Last verified: 2026-08-26, Namespaces 0.1.3.
 
 | Configuration | Build | Discovery | Switching | Overlay | Window move | Status |
 |---|---:|---:|---:|---:|---:|---|

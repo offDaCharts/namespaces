@@ -154,14 +154,6 @@ final class CoreTests: XCTestCase {
         for pair in zip(ordered, ordered.dropFirst()) { XCTAssertLessThanOrEqual(pair.0.maxX, pair.1.minX) }
     }
 
-    func testMissionControlFallbackUsesThumbnailStripWidth() {
-        let screen = CGRect(x: 0, y: 0, width: 2_058, height: 1_200)
-        let items = (1...8).map { MissionControlLayoutItem(index: $0, name: "Space \($0)") }
-        let frames = MissionControlLayout.fallbackFrames(items: items, screenFrame: screen)
-        XCTAssertEqual(frames[1]!.midX, 154.875, accuracy: 0.5)
-        XCTAssertEqual(frames[8]!.midX, 1_903.125, accuracy: 0.5)
-    }
-
     func testMissionControlCloseIsImmediateAfterPositiveDetection() {
         XCTAssertTrue(MissionControlLayout.shouldCloseAfterMissingWindow(hasSeenWindow: true, secondsSinceOpen: 0.1))
         XCTAssertFalse(MissionControlLayout.shouldCloseAfterMissingWindow(hasSeenWindow: false, secondsSinceOpen: 0.69))
