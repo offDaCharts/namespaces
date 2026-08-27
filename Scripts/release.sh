@@ -57,7 +57,7 @@ fi
 )
 
 sparkle_tools=${DESKORBIT_SPARKLE_TOOLS:-"$project_dir/.build/artifacts/sparkle/Sparkle/bin"}
-if [[ -x "$sparkle_tools/generate_appcast" && -n "${DESKORBIT_SPARKLE_PRIVATE_KEY_FILE:-}" ]]; then
+if [[ -x "$sparkle_tools/generate_appcast" && -s "${DESKORBIT_SPARKLE_PRIVATE_KEY_FILE:-/dev/null}" ]]; then
     sparkle_dir="$project_dir/build/sparkle"
     mkdir -p "$sparkle_dir"
     cp "$zip_path" "$sparkle_dir/${zip_path:t}"
