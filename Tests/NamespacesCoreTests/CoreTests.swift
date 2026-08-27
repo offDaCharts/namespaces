@@ -159,10 +159,4 @@ final class CoreTests: XCTestCase {
         XCTAssertFalse(MissionControlLayout.shouldCloseAfterMissingWindow(hasSeenWindow: false, secondsSinceOpen: 0.69))
         XCTAssertTrue(MissionControlLayout.shouldCloseAfterMissingWindow(hasSeenWindow: false, secondsSinceOpen: 0.7))
     }
-
-    func testMissionControlFallbackStopsAfterExactAnchorsDisappear() {
-        XCTAssertTrue(MissionControlLayout.shouldRenderTargets(hasSeenExactTargets: false, hasExactTargets: false))
-        XCTAssertTrue(MissionControlLayout.shouldRenderTargets(hasSeenExactTargets: true, hasExactTargets: true))
-        XCTAssertFalse(MissionControlLayout.shouldRenderTargets(hasSeenExactTargets: true, hasExactTargets: false))
-    }
 }

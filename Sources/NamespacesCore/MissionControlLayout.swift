@@ -17,13 +17,6 @@ public enum MissionControlLayout {
         hasSeenWindow || secondsSinceOpen >= 0.7
     }
 
-    /// Pointer-based frames are useful only during the opening animation. Once
-    /// exact Dock anchors have appeared, their disappearance means stale
-    /// fallback labels must not be drawn over the ordinary desktop.
-    public static func shouldRenderTargets(hasSeenExactTargets: Bool, hasExactTargets: Bool) -> Bool {
-        !hasSeenExactTargets || hasExactTargets
-    }
-
     public static func desktopIndex(in values: [String]) -> Int? {
         for value in values {
             let words = value.lowercased().split { !$0.isLetter && !$0.isNumber }
