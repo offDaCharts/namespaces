@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import NamespacesCore
+import Sparkle
 import SwiftUI
 
 @MainActor
@@ -15,7 +16,7 @@ final class WindowCoordinator {
         if let settingsWindow { settingsWindow.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); return }
         let view = SettingsView().environmentObject(model)
         let window = NSWindow(contentViewController: NSHostingController(rootView: view))
-        window.title = "Namespaces Settings"; window.setContentSize(NSSize(width: 900, height: 650)); window.minSize = NSSize(width: 760, height: 520)
+        window.title = "DeskOrbit Settings"; window.setContentSize(NSSize(width: 900, height: 650)); window.minSize = NSSize(width: 760, height: 520)
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable]; window.center(); window.isReleasedWhenClosed = false
         settingsWindow = window; window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
     }
@@ -24,7 +25,7 @@ final class WindowCoordinator {
         if let onboardingWindow { onboardingWindow.makeKeyAndOrderFront(nil); return }
         let view = OnboardingView { [weak self] in self?.onboardingWindow?.close(); self?.onboardingWindow = nil; self?.showSettings(model: model) }.environmentObject(model)
         let window = NSWindow(contentViewController: NSHostingController(rootView: view))
-        window.title = "Welcome to Namespaces"; window.styleMask = [.titled, .closable]; window.setContentSize(NSSize(width: 720, height: 520)); window.center(); window.isReleasedWhenClosed = false
+        window.title = "Welcome to DeskOrbit"; window.styleMask = [.titled, .closable]; window.setContentSize(NSSize(width: 720, height: 520)); window.center(); window.isReleasedWhenClosed = false
         onboardingWindow = window; window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
     }
 
@@ -75,6 +76,7 @@ final class WindowCoordinator {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let model = AppModel()
+    private let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
     private var statusItem: NSStatusItem!
     private var cancellables: Set<AnyCancellable> = []
     private var screenObserver: NSObjectProtocol?
@@ -93,8 +95,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             Task { @MainActor in try? await Task.sleep(for: .milliseconds(500)); OverlayController.shared.hide(); WindowCoordinator.shared.restoreReachableWindows(); self?.model.refreshSpaces() }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-            guard let self, !UserDefaults.standard.bool(forKey: "didCompleteOnboarding") else { return }
-            WindowCoordinator.shared.showOnboarding(model: self.model)
+            guard let self else { return }
+            if !UserDefaults.standard.bool(forKey: "didCompleteOnboarding") {
+                WindowCoordinator.shared.showOnboarding(model: self.model)
+            } else if !self.model.license.hasAccess {
+                WindowCoordinator.shared.showSettings(model: self.model)
+            }
         }
     }
 
@@ -104,7 +110,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
-        for url in urls where url.scheme == "namespaces" {
+        for url in urls where url.scheme == "deskorbit" || url.scheme == "namespaces" {
             switch url.host {
             case "settings": WindowCoordinator.shared.showSettings(model: model)
             case "switcher": WindowCoordinator.shared.showSwitcher(model: model)
@@ -119,13 +125,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func updateStatusLabel() {
         guard let button = statusItem.button else { return }
         let profile = model.activeProfile; let mode = model.data.preferences.menuLabelMode
-        button.image = switch mode { case .name, .number: nil; case .colorAndName: colorDot(profile?.colorHex ?? "#7C5CFC"); default: NSImage(systemSymbolName: profile?.symbol ?? "square.grid.2x2", accessibilityDescription: "Namespaces") }
+        button.image = switch mode { case .name, .number: nil; case .colorAndName: colorDot(profile?.colorHex ?? "#7C5CFC"); default: NSImage(systemSymbolName: profile?.symbol ?? "square.grid.2x2", accessibilityDescription: "DeskOrbit") }
         button.title = switch mode {
         case .icon: ""
         case .number: model.activeNativeSpace.map { "\($0.index)" } ?? ""
-        default: model.currentName == "Namespaces" && mode != .name ? "" : model.currentName
+        default: model.currentName == "DeskOrbit" && mode != .name ? "" : model.currentName
         }
-        button.toolTip = "Namespaces — \(model.currentName)"
+        button.toolTip = "DeskOrbit — \(model.currentName)"
     }
 
     private func colorDot(_ hex: String) -> NSImage {
@@ -178,7 +184,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let refresh = NSMenuItem(title: "Refresh Spaces", action: #selector(refresh), keyEquivalent: "r"); refresh.target = self; menu.addItem(refresh)
         let help = NSMenuItem(title: "Help & Privacy…", action: #selector(showHelp), keyEquivalent: "?"); help.target = self; menu.addItem(help)
         let updates = NSMenuItem(title: "Check for Updates…", action: #selector(checkUpdates), keyEquivalent: ""); updates.target = self; menu.addItem(updates)
-        menu.addItem(.separator()); let quit = NSMenuItem(title: "Quit Namespaces", action: #selector(quit), keyEquivalent: "q"); quit.target = self; menu.addItem(quit)
+        let license = NSMenuItem(title: "License: \(model.license.statusTitle)", action: #selector(showSettings), keyEquivalent: ""); license.target = self; menu.addItem(license)
+        menu.addItem(.separator()); let quit = NSMenuItem(title: "Quit DeskOrbit", action: #selector(quit), keyEquivalent: "q"); quit.target = self; menu.addItem(quit)
     }
 
     private func configureHotKeys() {
@@ -200,8 +207,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func openNote(_ sender: NSMenuItem) { guard let raw = sender.representedObject as? String, let id = UUID(uuidString: raw), let note = model.data.notes.first(where: { $0.id == id }) else { return }; WindowCoordinator.shared.showNote(note, model: model) }
     @objc private func newActiveNote() { guard let active = model.activeProfile else { return }; WindowCoordinator.shared.showNote(model.addNote(spaceID: active.id, kind: .text), model: model) }
     @objc private func toggleTrackingPause() { var prefs = model.data.preferences; prefs.trackingPaused.toggle(); model.updatePreferences(prefs); model.trackingTick(forceBoundary: true) }
-    @objc private func showHelp() { let alert = NSAlert(); alert.messageText = "Namespaces Help & Privacy"; alert.informativeText = "Use ⌥Space to switch by name and ⌥⇧Space to jump back. Hold Shift while dragging a standard window to reveal move targets after granting Accessibility. Data stays in ~/Library/Application Support/Namespaces and is never uploaded."; alert.addButton(withTitle: "OK"); alert.runModal() }
-    @objc private func checkUpdates() { let alert = NSAlert(); alert.messageText = "Private Offline Build"; alert.informativeText = "Automatic update networking is intentionally disabled. Rebuild from this repository when you want a newer private version."; alert.addButton(withTitle: "OK"); alert.runModal() }
+    @objc private func showHelp() { let alert = NSAlert(); alert.messageText = "DeskOrbit Help & Privacy"; alert.informativeText = "Use ⌥Space to switch by name and ⌥⇧Space to jump back. Hold Shift while dragging a standard window to reveal move targets after granting Accessibility. Data stays in ~/Library/Application Support/Namespaces and is never uploaded."; alert.addButton(withTitle: "OK"); alert.runModal() }
+    @objc private func checkUpdates() { updaterController.checkForUpdates(nil) }
     @objc private func showSwitcher() { WindowCoordinator.shared.showSwitcher(model: model) }
     @objc private func jumpBack() { model.jumpBack() }
     @objc private func showLabels() { OverlayController.shared.showSpaceLabels() }

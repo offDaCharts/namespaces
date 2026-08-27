@@ -8,6 +8,9 @@ let package = Package(
         .executable(name: "Namespaces", targets: ["Namespaces"]),
         .library(name: "NamespacesCore", targets: ["NamespacesCore"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.9.6"),
+    ],
     targets: [
         .target(
             name: "NamespacesCore",
@@ -15,12 +18,16 @@ let package = Package(
         ),
         .executableTarget(
             name: "Namespaces",
-            dependencies: ["NamespacesCore"],
+            dependencies: [
+                "NamespacesCore",
+                .product(name: "Sparkle", package: "Sparkle"),
+            ],
             path: "Sources/Namespaces",
             linkerSettings: [
                 .linkedFramework("AppKit"),
                 .linkedFramework("Carbon"),
                 .linkedFramework("ServiceManagement"),
+                .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"]),
             ]
         ),
         .testTarget(

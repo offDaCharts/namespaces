@@ -1,6 +1,6 @@
-# Namespaces
+# DeskOrbit
 
-Namespaces is a private, local-first macOS menu-bar application for naming,
+DeskOrbit is a local-first macOS menu-bar application for naming,
 switching, and augmenting native macOS Spaces.
 
 ## Current capabilities
@@ -35,14 +35,12 @@ switching, and augmenting native macOS Spaces.
 
 For normal use, download the latest self-contained DMG or universal ZIP from
 [GitHub Releases](https://github.com/offDaCharts/namespaces/releases/latest).
-Open the DMG and drag `Namespaces.app` to Applications. Xcode, Swift, Homebrew,
+Open the DMG and drag `DeskOrbit.app` to Applications. Xcode, Swift, Homebrew,
 and this source repository are not required on the destination Mac.
 
-Private builds are ad-hoc signed unless a Developer ID/notary profile is supplied.
-On first launch, Control-click `Namespaces.app`, choose **Open**, and confirm. If
-macOS still blocks it, use **System Settings → Privacy & Security → Open Anyway**.
-Then grant Accessibility if you want Mission Control thumbnail labels and window
-movement.
+Public releases are signed with Kauibungalow LLC's Developer ID and notarized by
+Apple. Grant Accessibility only if you want Mission Control thumbnail labels and
+window movement.
 
 ### Build from source
 
@@ -53,7 +51,7 @@ movement.
 The script builds, ad-hoc signs, and opens:
 
 ```text
-build/Namespaces.app
+build/DeskOrbit.app
 ```
 
 To build a release app without opening it:
@@ -62,16 +60,19 @@ To build a release app without opening it:
 ./Scripts/build-app.sh release
 ```
 
-Release builds contain both Apple Silicon and Intel slices. The private release
-pipeline creates a checksummed DMG and defaults to ad-hoc signing:
+Release builds contain both Apple Silicon and Intel slices. The release pipeline
+creates a checksummed DMG and universal ZIP, notarizes both, and generates a
+signed Sparkle appcast:
 
 ```bash
 ./Scripts/release.sh
 ```
 
-For Developer ID/notarization, set `NAMESPACES_SIGN_IDENTITY` to the signing
-identity and `NAMESPACES_NOTARY_PROFILE` to an existing `notarytool` keychain
-profile. No secret is stored in this repository.
+For Developer ID/notarization, set `DESKORBIT_SIGN_IDENTITY` and either
+`DESKORBIT_NOTARY_PROFILE` or the `DESKORBIT_NOTARY_KEY`,
+`DESKORBIT_NOTARY_KEY_ID`, and `DESKORBIT_NOTARY_ISSUER` variables. Set
+`DESKORBIT_SPARKLE_PRIVATE_KEY_FILE` for non-Keychain Sparkle signing. No secret
+is stored in this repository.
 
 You can also open `Package.swift` directly in Xcode or run:
 
@@ -82,7 +83,7 @@ swift run Namespaces
 
 ## First use
 
-1. Start Namespaces. Its grid icon and current Space name appear in the menu
+1. Start DeskOrbit. Its grid icon and current Space name appear in the menu
    bar.
 2. Open **Settings → Spaces** and name each discovered desktop.
 3. Press `⌥Space` to open the Quick Switcher.
@@ -90,7 +91,7 @@ swift run Namespaces
    Control thumbnails and use window-level features.
 5. Configure notes, automations, and tracking as desired.
 
-The app is ready to use directly from `build/Namespaces.app`. To keep it in your
+The app is ready to use directly from `build/DeskOrbit.app`. To keep it in your
 user Applications folder, drag that app there in Finder and launch it once.
 
 All content is stored at:
@@ -99,13 +100,15 @@ All content is stored at:
 ~/Library/Application Support/Namespaces/Namespaces.json
 ```
 
-Namespaces has no analytics, telemetry, accounts, advertising, or automatic
-crash upload. Experimental integration is isolated and fails closed when the
-current macOS build does not expose the required WindowServer capabilities.
+DeskOrbit includes a 14-day full-feature trial and a $3.99 one-time license for
+up to three Macs. License requests include only the key and a Mac instance label.
+DeskOrbit has no analytics, advertising, or automatic crash upload. Experimental
+integration is isolated and fails closed when the current macOS build does not
+expose the required WindowServer capabilities.
 
 ### Mission Control names
 
-Namespaces cannot modify Apple's native `Desktop 1`, `Desktop 2`, … strings.
+DeskOrbit cannot modify Apple's native `Desktop 1`, `Desktop 2`, … strings.
 With **Show names on Mission Control thumbnails** enabled, it detects Mission
 Control through the Dock and adds click-through colored labels containing your
 saved name. The compact text-only labels follow the desktop controls until Mission
@@ -113,7 +116,7 @@ Control closes. Keyboard shortcuts, trackpad gestures, Dock activation, and Hot
 Corners use the same observer path.
 
 If names do not appear, open **Settings → Capabilities** and check **Mission
-Control status**. Grant Accessibility to the exact copy of `Namespaces.app`
+Control status**. Grant Accessibility to the exact copy of `DeskOrbit.app`
 that you run, then quit and reopen it. Rebuilding or moving an ad-hoc-signed app
 can require removing the old Accessibility entry and granting it again.
 

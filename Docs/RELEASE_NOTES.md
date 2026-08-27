@@ -1,6 +1,9 @@
-# Namespaces 0.1.0 — Private Build
+# DeskOrbit 0.1.6 — Launch Candidate
 
-This release is usable on the verified Apple Silicon/macOS 15 configuration and
+This release introduces the DeskOrbit name, Kauibungalow LLC bundle identity,
+a 14-day full-feature trial, secure Keychain license storage, Lemon Squeezy
+license activation for up to three Macs, and signed Sparkle updates. It is usable
+on the verified Apple Silicon/macOS 15 configuration and
 includes naming, navigation, overlays, notes, safe on-click automations, tracking,
 backups, diagnostics, and window-movement controls.
 
@@ -21,8 +24,8 @@ Control exits remove all panels on the first missing WindowServer scan.
 
 Known boundaries: Apple does not provide public APIs for direct Spaces metadata,
 so enhanced switching/movement uses dynamically resolved private symbols and may
-degrade after macOS updates. Namespaces overlays do not rename Apple's own Desktop
+degrade after macOS updates. DeskOrbit overlays do not rename Apple's own Desktop
 labels. Accessibility is required for thumbnail-aligned Mission Control labels,
-focused-window movement, and Shift-drag. No updater or network client is included. Developer ID signing,
-notarization, Intel hardware verification, multi-display verification, and the AX
-window-move manual check require external credentials/hardware/user permission.
+focused-window movement, and Shift-drag. Developer ID signing and notarization are
+configured in release automation; Intel hardware, multi-display, and AX
+window-move checks still require their respective hardware and user permission.

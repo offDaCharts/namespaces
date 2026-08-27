@@ -3,10 +3,10 @@ import NamespacesCore
 import SwiftUI
 
 private enum SettingsSection: String, CaseIterable, Identifiable {
-    case spaces = "Spaces", shortcuts = "Shortcuts", notes = "Notes", automations = "Automations", tracking = "Time Tracking", permissions = "Capabilities", data = "Data & Backup", general = "General", about = "About"
+    case spaces = "Spaces", shortcuts = "Shortcuts", notes = "Notes", automations = "Automations", tracking = "Time Tracking", permissions = "Capabilities", data = "Data & Backup", general = "General", license = "License", about = "About"
     var id: String { rawValue }
     var icon: String { switch self {
-    case .spaces: "square.grid.2x2"; case .shortcuts: "keyboard"; case .notes: "note.text"; case .automations: "play.square.stack"; case .tracking: "clock"; case .permissions: "checkmark.shield"; case .data: "externaldrive"; case .general: "gearshape"; case .about: "info.circle"
+    case .spaces: "square.grid.2x2"; case .shortcuts: "keyboard"; case .notes: "note.text"; case .automations: "play.square.stack"; case .tracking: "clock"; case .permissions: "checkmark.shield"; case .data: "externaldrive"; case .general: "gearshape"; case .license: "key"; case .about: "info.circle"
     } }
 }
 
@@ -31,12 +31,13 @@ struct SettingsView: View {
             case .permissions: CapabilitiesView()
             case .data: DataSettingsView()
             case .general: GeneralSettingsView()
+            case .license: LicenseSettingsView()
             case .about: AboutView()
             } }.environmentObject(model)
         }
-        .alert("Namespaces", isPresented: Binding(get: { model.lastError != nil }, set: { if !$0 { model.lastError = nil } })) { Button("OK") { model.lastError = nil } } message: { Text(model.lastError ?? "") }
+        .alert("DeskOrbit", isPresented: Binding(get: { model.lastError != nil }, set: { if !$0 { model.lastError = nil } })) { Button("OK") { model.lastError = nil } } message: { Text(model.lastError ?? "") }
     }
-    private func keywords(_ section: SettingsSection) -> String { switch section { case .spaces: "names icons colors aliases billable"; case .shortcuts: "hotkeys keyboard jump back"; case .notes: "checklist markdown dock"; case .automations: "scripts apps files shortcuts routines"; case .tracking: "time idle sessions CSV billing history"; case .permissions: "accessibility provider WindowServer experimental"; case .data: "backup restore diagnostics reset privacy"; case .general: "login hover labels appearance offline"; case .about: "version data location help" } }
+    private func keywords(_ section: SettingsSection) -> String { switch section { case .spaces: "names icons colors aliases billable"; case .shortcuts: "hotkeys keyboard jump back"; case .notes: "checklist markdown dock"; case .automations: "scripts apps files shortcuts routines"; case .tracking: "time idle sessions CSV billing history"; case .permissions: "accessibility provider WindowServer experimental"; case .data: "backup restore diagnostics reset privacy"; case .general: "login hover labels appearance offline"; case .license: "trial buy purchase activate key lemon"; case .about: "version data location help" } }
 }
 
 private struct ShortcutsSettingsView: View {
@@ -56,7 +57,7 @@ private struct ShortcutsSettingsView: View {
         if !model.hotkeyFailures.isEmpty { Label("Could not register: \(model.hotkeyFailures.joined(separator: ", ")). Another app may own the shortcut.", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange) }
         let all = [prefs.wrappedValue.quickSwitcherShortcut, prefs.wrappedValue.jumpBackShortcut] + model.data.spaces.compactMap(\.shortcut)
         let conflicts = ShortcutValidator.conflicts(all)
-        if !conflicts.isEmpty { Label("Two or more Namespaces actions use the same shortcut. Change one before relying on it.", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange) }
+        if !conflicts.isEmpty { Label("Two or more DeskOrbit actions use the same shortcut. Change one before relying on it.", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange) }
         HStack { Button("Reset Defaults") { var value = model.data.preferences; value.quickSwitcherShortcut = .init(keyCode: 49, modifiers: 2048, display: "⌥Space"); value.jumpBackShortcut = .init(keyCode: 49, modifiers: 2560, display: "⌥⇧Space"); value.globalShortcutsEnabled = true; model.updatePreferences(value) }; Button("Disable All") { var value = model.data.preferences; value.globalShortcutsEnabled = false; model.updatePreferences(value) } }
         Text("Custom arbitrary key recording is intentionally limited in this private build to a conflict-safe set of common combinations. Per-Space bindings use Option+1 through Option+9 in Spaces.").font(.caption).foregroundStyle(.secondary)
     } }
@@ -78,7 +79,7 @@ private struct SpacesSettingsView: View {
             }
         }
         let unmatched = model.data.spaces.filter { model.native(for: $0) == nil }
-        if !unmatched.isEmpty { Divider(); Text("Saved but currently unmatched").font(.headline); Text("Namespaces keeps these records instead of guessing and attaching their notes or time to the wrong desktop.").font(.caption).foregroundStyle(.secondary); ForEach(unmatched) { profile in HStack { Image(systemName: "questionmark.diamond").foregroundStyle(.orange); VStack(alignment: .leading) { Text(profile.name); Text("Previously desktop \(profile.lastKnownIndex.map(String.init) ?? "?") · Native ID \(profile.nativeID)").font(.caption).foregroundStyle(.secondary) }; Spacer(); Menu("Link to Current Space…") { ForEach(model.nativeSpaces) { native in Button("\(native.displayName) · Desktop \(native.index)") { model.linkUnmatchedProfile(profile.id, to: native) } } } }.padding(10).background(.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 8)) } }
+        if !unmatched.isEmpty { Divider(); Text("Saved but currently unmatched").font(.headline); Text("DeskOrbit keeps these records instead of guessing and attaching their notes or time to the wrong desktop.").font(.caption).foregroundStyle(.secondary); ForEach(unmatched) { profile in HStack { Image(systemName: "questionmark.diamond").foregroundStyle(.orange); VStack(alignment: .leading) { Text(profile.name); Text("Previously desktop \(profile.lastKnownIndex.map(String.init) ?? "?") · Native ID \(profile.nativeID)").font(.caption).foregroundStyle(.secondary) }; Spacer(); Menu("Link to Current Space…") { ForEach(model.nativeSpaces) { native in Button("\(native.displayName) · Desktop \(native.index)") { model.linkUnmatchedProfile(profile.id, to: native) } } } }.padding(10).background(.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 8)) } }
         if model.nativeSpaces.isEmpty { ContentUnavailableView("No Spaces discovered", systemImage: "rectangle.3.group", description: Text(model.capabilityMessage)) }
     } }
 }
@@ -291,7 +292,7 @@ private struct SegmentEditor: View {
 
 private struct CapabilitiesView: View {
     @EnvironmentObject var model: AppModel
-    var body: some View { Page(title: "Permissions & Capabilities", subtitle: "Namespaces fails closed when an experimental macOS integration is unavailable.") {
+    var body: some View { Page(title: "Permissions & Capabilities", subtitle: "DeskOrbit fails closed when an experimental macOS integration is unavailable.") {
         LabeledContent("Provider", value: model.providerName); LabeledContent("Status", value: model.capabilityMessage)
         CapabilityRow(name: "Discover native Spaces", available: model.provider.capabilities.contains(.enumerate))
         CapabilityRow(name: "Direct switching", available: model.provider.capabilities.contains(.switchSpace))
@@ -349,18 +350,56 @@ private struct GeneralSettingsView: View {
         HStack { Text("Idle threshold"); TextField("seconds", value: prefs.idleThreshold, format: .number).frame(width: 90); Text("seconds").foregroundStyle(.secondary) }
         Toggle("Enhanced native Spaces integration", isOn: prefs.enhancedIntegrationEnabled).onChange(of: prefs.wrappedValue.enhancedIntegrationEnabled) { _, _ in model.selectProvider(); model.refreshSpaces() }
         Toggle("Show names on Mission Control thumbnails", isOn: prefs.missionControlLabelsEnabled)
-        Text("Namespaces adds click-through colored labels over Mission Control. Apple’s Desktop 1, Desktop 2 labels are not modified. Accessibility lets Namespaces detect trackpad gestures and follow each thumbnail without disabling SIP.").font(.caption).foregroundStyle(.secondary)
+        Text("DeskOrbit adds click-through colored labels over Mission Control. Apple’s Desktop 1, Desktop 2 labels are not modified. Accessibility lets DeskOrbit detect trackpad gestures and follow each thumbnail without disabling SIP.").font(.caption).foregroundStyle(.secondary)
         Toggle("Reveal Space strip by hovering at the top center", isOn: prefs.hoverEnabled)
         HStack { Button("Preview Space Labels") { OverlayController.shared.showSpaceLabels(duration: 5) }; Button("Grant Accessibility…") { let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary; _ = AXIsProcessTrustedWithOptions(options) }; Menu("Move Frontmost Window") { ForEach(model.profilesInDisplayOrder) { profile in Button(profile.name) { model.moveFrontmostWindow(to: profile) } } } }
-        Divider(); Label("Namespaces makes no analytics, telemetry, advertising, or crash-report uploads.", systemImage: "hand.raised.fill").foregroundStyle(.secondary)
+        Divider(); Label("DeskOrbit makes no analytics, telemetry, advertising, or crash-report uploads.", systemImage: "hand.raised.fill").foregroundStyle(.secondary)
+    } }
+}
+
+private struct LicenseSettingsView: View {
+    @EnvironmentObject var model: AppModel
+    @State private var licenseKey = ""
+
+    var body: some View { Page(title: "License", subtitle: "One purchase covers up to three Macs and includes lifetime updates.") {
+        HStack(spacing: 12) {
+            Image(systemName: model.license.hasAccess ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                .font(.system(size: 34))
+                .foregroundStyle(model.license.hasAccess ? .green : .orange)
+            VStack(alignment: .leading) {
+                Text(model.license.statusTitle).font(.title3.bold())
+                if let key = model.license.maskedLicenseKey { Text(key).font(.caption.monospaced()).foregroundStyle(.secondary) }
+            }
+        }
+
+        if model.license.maskedLicenseKey == nil {
+            SecureField("License key", text: $licenseKey).textFieldStyle(.roundedBorder).frame(maxWidth: 460)
+            HStack {
+                Button("Activate License") { Task { if await model.license.activate(licenseKey) { licenseKey = "" } } }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(model.license.isWorking || licenseKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button("Buy DeskOrbit — $3.99") { NSWorkspace.shared.open(model.license.purchaseURL) }
+            }
+        } else {
+            HStack {
+                Button("Validate Now") { Task { await model.license.validate() } }.disabled(model.license.isWorking)
+                Button("Deactivate This Mac") { Task { _ = await model.license.deactivate() } }.disabled(model.license.isWorking)
+            }
+        }
+
+        if model.license.isWorking { ProgressView("Contacting the license server…") }
+        if let error = model.license.lastError { Label(error, systemImage: "exclamationmark.circle").foregroundStyle(.orange) }
+        Divider()
+        Text("DeskOrbit sends only the license key and an instance label for this Mac to Lemon Squeezy when you activate, validate, or deactivate. Your Space names, notes, automations, application usage, and tracking data stay on this Mac.").font(.caption).foregroundStyle(.secondary)
     } }
 }
 
 private struct AboutView: View {
     @EnvironmentObject var model: AppModel
-    var body: some View { Page(title: "Namespaces", subtitle: "A local-first context layer for native macOS Spaces.") {
-        Image(systemName: "square.grid.2x2.fill").font(.system(size: 72)).foregroundStyle(.tint); Text("Version 0.1.0").font(.headline); Text("Private local build · macOS \(ProcessInfo.processInfo.operatingSystemVersionString)")
-        Divider(); Text("Namespaces adds its own labels and controls around native Spaces. It does not modify Apple's Desktop labels, inject code into Dock, disable SIP, capture the screen, or upload usage data.").foregroundStyle(.secondary)
+    private var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.6" }
+    var body: some View { Page(title: "DeskOrbit", subtitle: "Name, switch, and organize your Mac Spaces.") {
+        Image(systemName: "square.grid.2x2.fill").font(.system(size: 72)).foregroundStyle(.tint); Text("Version \(version)").font(.headline); Text("Kauibungalow LLC · macOS \(ProcessInfo.processInfo.operatingSystemVersionString)")
+        Divider(); Text("DeskOrbit adds its own labels and controls around native Spaces. It does not modify Apple's Desktop labels, inject code into Dock, disable SIP, capture the screen, or upload usage data.").foregroundStyle(.secondary)
         LabeledContent("Provider", value: model.providerName); LabeledContent("Data", value: model.store.fileURL.path)
     } }
 }

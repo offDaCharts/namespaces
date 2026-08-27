@@ -20,6 +20,7 @@ final class AppModel: ObservableObject {
     @Published var missionControlOverlayStatus = "Initializing Mission Control integration…"
 
     let store = DataStore()
+    let license = LicenseController()
     private(set) var provider: SpaceProviding = FallbackSpaceProvider()
     private let runner = AutomationRunner()
     private var observers: [NSObjectProtocol] = []
@@ -32,17 +33,19 @@ final class AppModel: ObservableObject {
     private var providerFailureCount = 0
     private var lastObservedActiveID: UUID?
     private var lastWindowMove: (windowID: CGWindowID, source: UUID)?
+    private var licenseObserver: AnyCancellable?
     var canUndoWindowMove: Bool { lastWindowMove != nil }
 
     var activeNativeSpace: NativeSpace? { nativeSpaces.first(where: \.isActive) }
     var activeProfile: SpaceProfile? { guard let native = activeNativeSpace else { return nil }; return profile(for: native) }
-    var currentName: String { activeProfile?.name ?? activeNativeSpace.map { "Desktop \($0.index)" } ?? "Namespaces" }
+    var currentName: String { activeProfile?.name ?? activeNativeSpace.map { "Desktop \($0.index)" } ?? "DeskOrbit" }
     // Keep these as explicit closures rather than unapplied instance-method
     // references. Swift 6.0/6.1 can otherwise select a typed-throws overload of
     // compactMap even though profile(for:) is non-throwing.
     var profilesInDisplayOrder: [SpaceProfile] { nativeSpaces.compactMap { native in profile(for: native) } }
 
     init() {
+        licenseObserver = license.objectWillChange.sink { [weak self] in self?.objectWillChange.send() }
         observers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { [weak self] _ in Task { @MainActor in self?.refreshSpaces() } })
         observers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { [weak self] _ in Task { @MainActor in self?.trackingTick(forceBoundary: true) } })
         observers.append(NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in Task { @MainActor in self?.closeOpenSegment(classification: .active) } })
@@ -135,6 +138,7 @@ final class AppModel: ObservableObject {
     }
 
     func switchTo(_ profile: SpaceProfile) {
+        guard requireLicense() else { return }
         guard let native = native(for: profile) else { lastError = "This Space is not currently available."; return }
         do {
             try provider.switchTo(native)
@@ -148,6 +152,7 @@ final class AppModel: ObservableObject {
     }
 
     func moveFrontmostWindow(to profile: SpaceProfile, follow: Bool = false) {
+        guard requireLicense() else { return }
         guard let native = native(for: profile) else { lastError = "The target Space is unavailable."; return }
         do {
             let windowID = try FocusedWindowResolver.windowID()
@@ -158,6 +163,7 @@ final class AppModel: ObservableObject {
     }
 
     func moveWindow(_ windowID: CGWindowID, to profile: SpaceProfile, follow: Bool = false) {
+        guard requireLicense() else { return }
         guard let native = native(for: profile) else { lastError = "The target Space is unavailable."; return }
         do { if let source = activeProfile?.id { lastWindowMove = (windowID, source) }; try provider.moveWindow(windowID, to: native); if follow { switchTo(profile) } }
         catch { lastError = error.localizedDescription }
@@ -189,6 +195,7 @@ final class AppModel: ObservableObject {
         data.automations.append(contentsOf: copies); scheduleSave(); objectWillChange.send()
     }
     func runAutomation(_ group: AutomationGroup) {
+        guard requireLicense() else { return }
         Task {
             guard !isAutomationRunning else { return }
             let enabled = group.actions.filter(\.isEnabled)
@@ -219,6 +226,15 @@ final class AppModel: ObservableObject {
             await runner.run(approvedGroup) { [weak self] result in Task { @MainActor in self?.automationResults.append(result) } }
             isAutomationRunning = false
         }
+    }
+
+    @discardableResult
+    func requireLicense() -> Bool {
+        guard license.hasAccess else {
+            lastError = "Your 14-day DeskOrbit trial has ended. Activate a license in Settings to continue switching Spaces, moving windows, and running automations."
+            return false
+        }
+        return true
     }
 
     func updatePreferences(_ preferences: AppPreferences) {

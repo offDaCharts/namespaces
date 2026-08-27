@@ -14,12 +14,12 @@ jobs:
       - name: Package app
         run: ./Scripts/build-app.sh release
       - name: Archive self-contained app
-        run: ditto -c -k --sequesterRsrc --keepParent build/Namespaces.app build/Namespaces-macos-universal.zip
+        run: ditto -c -k --sequesterRsrc --keepParent build/DeskOrbit.app build/DeskOrbit-macos-universal.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: Namespaces-macos-universal
-          path: build/Namespaces-macos-universal.zip
-      - name: Verify signature and offline policy
+          name: DeskOrbit-macos-universal
+          path: build/DeskOrbit-macos-universal.zip
+      - name: Verify signature and privacy policy
         run: |
-          codesign --verify --deep --strict build/Namespaces.app
-          ! rg 'URLSession|NWConnection|TelemetryClient|SentrySDK|Analytics' Sources Package.swift
+          codesign --verify --deep --strict build/DeskOrbit.app
+          ! rg 'TelemetryClient|SentrySDK|FirebaseAnalytics|Amplitude|Mixpanel' Sources Package.swift

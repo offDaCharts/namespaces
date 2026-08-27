@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleDevelopmentRegion</key><string>en</string>
-    <key>CFBundleExecutable</key><string>Namespaces</string>
-    <key>CFBundleIdentifier</key><string>com.offdacharts.namespaces</string>
+    <key>CFBundleExecutable</key><string>DeskOrbit</string>
+    <key>CFBundleIdentifier</key><string>com.kauibungalow.deskorbit</string>
     <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
-    <key>CFBundleName</key><string>Namespaces</string>
-    <key>CFBundleDisplayName</key><string>Namespaces</string>
+    <key>CFBundleName</key><string>DeskOrbit</string>
+    <key>CFBundleDisplayName</key><string>DeskOrbit</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>0.1.6</string>
@@ -15,14 +15,17 @@
     <key>CFBundleURLTypes</key>
     <array>
         <dict>
-            <key>CFBundleURLName</key><string>Namespaces Commands</string>
-            <key>CFBundleURLSchemes</key><array><string>namespaces</string></array>
+            <key>CFBundleURLName</key><string>DeskOrbit Commands</string>
+            <key>CFBundleURLSchemes</key><array><string>deskorbit</string><string>namespaces</string></array>
         </dict>
     </array>
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>
-    <key>NSAppleEventsUsageDescription</key><string>Namespaces runs only the applications, Shortcuts, and local automations you explicitly configure.</string>
-    <key>NSHumanReadableCopyright</key><string>Private local build</string>
+    <key>NSAppleEventsUsageDescription</key><string>DeskOrbit runs only the applications, Shortcuts, and local automations you explicitly configure.</string>
+    <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Kauibungalow LLC. All rights reserved.</string>
+    <key>SUFeedURL</key><string>https://github.com/offDaCharts/namespaces/releases/latest/download/appcast.xml</string>
+    <key>SUEnableAutomaticChecks</key><true/>
+    <key>SUPublicEDKey</key><string>6m2omqzV+7UxHJLX/5r4BEi/AXbeSf3QHxXmQZstSrI=</string>
 </dict>
 </plist>

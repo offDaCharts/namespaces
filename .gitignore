@@ -6,3 +6,4 @@ xcuserdata/
 DerivedData/
 *.dmg
 *.zip
+.release-private/
