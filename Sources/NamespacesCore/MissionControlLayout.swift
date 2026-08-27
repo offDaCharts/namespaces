@@ -38,8 +38,11 @@ public enum MissionControlLayout {
     public static func fallbackFrames(items: [MissionControlLayoutItem], screenFrame: CGRect) -> [Int: CGRect] {
         guard !items.isEmpty else { return [:] }
         let sorted = items.sorted { $0.index < $1.index }
-        let available = max(300, screenFrame.size.width - 120)
-        let slot = min(150, available / CGFloat(sorted.count))
+        let available = max(300, screenFrame.size.width - 60)
+        // Mission Control distributes desktop thumbnails across almost the
+        // entire display. Keep a modest outer gutter and cap only unusually
+        // wide layouts; a small cap compresses many Spaces into the center.
+        let slot = min(320, available / CGFloat(sorted.count))
         let total = slot * CGFloat(sorted.count)
         let startX = screenFrame.origin.x + screenFrame.size.width / 2 - total / 2
         var frames: [Int: CGRect] = [:]

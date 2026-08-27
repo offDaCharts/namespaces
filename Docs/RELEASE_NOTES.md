@@ -1,4 +1,4 @@
-# Namespaces 0.1.1 — Private Build
+# Namespaces 0.1.2 — Private Build
 
 This release is usable on the verified Apple Silicon/macOS 15 configuration and
 includes naming, navigation, overlays, notes, safe on-click automations, tracking,
@@ -21,6 +21,9 @@ Control exits remove all panels on the first missing WindowServer scan.
 Version 0.1.1 also adds a fast close-state observer and suppresses the animated
 fallback as soon as Mission Control's real thumbnail anchors disappear, so
 labels do not linger over ordinary application windows after dismissal.
+Version 0.1.2 restores full-width fallback spacing: eight or more Space labels
+now follow Mission Control's display-wide thumbnail strip instead of becoming
+compressed into the center of the screen.
 
 Installing a newer app bundle preserves all user data because settings and
 content live outside the bundle in `~/Library/Application Support/Namespaces`.

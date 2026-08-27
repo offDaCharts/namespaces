@@ -1,6 +1,6 @@
 # Software Bill of Materials
 
-Namespaces 0.1.1 has no third-party runtime packages.
+Namespaces 0.1.2 has no third-party runtime packages.
 
 | Component | Source | Purpose | Network capable |
 |---|---|---|---|

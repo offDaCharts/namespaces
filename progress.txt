@@ -74,13 +74,15 @@ boundaries require owner permission, other hardware, or signing credentials.
 
 ## Test and Verification Results
 
-- `swift test`: passing (20 tests).
+- `swift test`: passing (21 tests).
 - Debug app bundle codesign verification: passing.
 - Universal DMG/ZIP integrity, extracted signature, both architectures, and
   checksum manifest: passing.
 - Mission Control close detection now polls at 50 ms only while active, responds
   to native Space changes, and suppresses stale fallback labels after exact Dock
   anchors disappear.
+- Mission Control fallback labels span the display-wide thumbnail strip instead
+  of compressing eight or more Spaces into a centered 150-point grid.
 - Packaged process launch: passing.
 - Live settings accessibility tree and visual inspection: passing.
 - Native rename persisted to Application Support: passing.

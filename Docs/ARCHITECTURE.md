@@ -1,6 +1,6 @@
 # Architecture
 
-Last verified: 2026-08-26, Namespaces 0.1.1.
+Last verified: 2026-08-26, Namespaces 0.1.2.
 
 `NamespacesCore` owns Codable domain records, SwiftData/JSON persistence,
 search, topology comparison, reconciliation scoring, backup packaging, and CSV.
