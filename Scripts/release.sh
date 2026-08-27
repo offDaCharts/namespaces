@@ -70,7 +70,7 @@ if [[ -x "$sparkle_tools/generate_appcast" && -s "${DESKORBIT_SPARKLE_PRIVATE_KE
         --download-url-prefix "https://github.com/offDaCharts/namespaces/releases/download/v$version/"
         --link "https://deskorbit.kauibungalow.com"
         --maximum-versions 1
-        -o appcast.xml
+        -o "$sparkle_dir/appcast.xml"
     )
     sparkle_args+=(--ed-key-file "$DESKORBIT_SPARKLE_PRIVATE_KEY_FILE")
     "$sparkle_tools/generate_appcast" "${sparkle_args[@]}" "$sparkle_dir"
