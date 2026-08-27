@@ -47,7 +47,7 @@ jobs:
         run: swift package clean && swift test
       - name: Build self-contained universal release
         env:
-          DESKORBIT_SIGN_IDENTITY: ${{ secrets.DESKORBIT_DEVELOPER_ID_P12_BASE64 != '' && 'Developer ID Application: Kauibungalow LLC (Q3T7CAZ6NT)' || '-' }}
+          DESKORBIT_SIGN_IDENTITY: "${{ secrets.DESKORBIT_DEVELOPER_ID_P12_BASE64 != '' && 'Developer ID Application: Kauibungalow LLC (Q3T7CAZ6NT)' || '-' }}"
           DESKORBIT_NOTARY_KEY: ${{ runner.temp }}/AuthKey_DeskOrbit.p8
           DESKORBIT_NOTARY_KEY_ID: ${{ secrets.DESKORBIT_NOTARY_KEY_ID }}
           DESKORBIT_NOTARY_ISSUER: ${{ secrets.DESKORBIT_NOTARY_ISSUER }}
