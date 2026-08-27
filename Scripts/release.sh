@@ -9,6 +9,10 @@ mkdir -p "$release_dir"
 version=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$project_dir/Resources/Info.plist")
 
 sign_identity=${DESKORBIT_SIGN_IDENTITY:-${NAMESPACES_SIGN_IDENTITY:--}}
+if [[ "$sign_identity" != "-" ]] && ! security find-identity -v -p codesigning | grep -Fq "$sign_identity"; then
+    echo "Signing identity '$sign_identity' is unavailable; using an ad-hoc signature." >&2
+    sign_identity="-"
+fi
 if [[ "$sign_identity" == "-" ]]; then
     codesign --force --deep --sign - --entitlements "$project_dir/Resources/Namespaces.entitlements" "$app_path"
 else

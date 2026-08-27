@@ -15,11 +15,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Import Developer ID certificate
-        if: ${{ secrets.DESKORBIT_DEVELOPER_ID_P12_BASE64 != '' && secrets.DESKORBIT_DEVELOPER_ID_P12_PASSWORD != '' }}
         env:
           DESKORBIT_DEVELOPER_ID_P12_BASE64: ${{ secrets.DESKORBIT_DEVELOPER_ID_P12_BASE64 }}
           DESKORBIT_DEVELOPER_ID_P12_PASSWORD: ${{ secrets.DESKORBIT_DEVELOPER_ID_P12_PASSWORD }}
         run: |
+          if [[ -z "$DESKORBIT_DEVELOPER_ID_P12_BASE64" || -z "$DESKORBIT_DEVELOPER_ID_P12_PASSWORD" ]]; then
+            echo "Developer ID secrets are unavailable; the release will use ad-hoc signing."
+            exit 0
+          fi
           certificate_path="$RUNNER_TEMP/deskorbit-developer-id.p12"
           keychain_path="$RUNNER_TEMP/deskorbit-signing.keychain-db"
           keychain_password="$(openssl rand -base64 24)"
@@ -47,7 +50,7 @@ jobs:
         run: swift package clean && swift test
       - name: Build self-contained universal release
         env:
-          DESKORBIT_SIGN_IDENTITY: "${{ secrets.DESKORBIT_DEVELOPER_ID_P12_BASE64 != '' && 'Developer ID Application: Kauibungalow LLC (Q3T7CAZ6NT)' || '-' }}"
+          DESKORBIT_SIGN_IDENTITY: "Developer ID Application: Kauibungalow LLC (Q3T7CAZ6NT)"
           DESKORBIT_NOTARY_KEY: ${{ runner.temp }}/AuthKey_DeskOrbit.p8
           DESKORBIT_NOTARY_KEY_ID: ${{ secrets.DESKORBIT_NOTARY_KEY_ID }}
           DESKORBIT_NOTARY_ISSUER: ${{ secrets.DESKORBIT_NOTARY_ISSUER }}
