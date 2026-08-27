@@ -43,7 +43,20 @@ if (( ${#notary_args[@]} )); then
     ditto -c -k --sequesterRsrc --keepParent "$app_path" "$zip_path"
 fi
 
-hdiutil create -volname DeskOrbit -srcfolder "$app_path" -ov -format UDZO "$dmg_path" >/dev/null
+dmg_created=false
+for attempt in 1 2 3; do
+    if hdiutil create -volname DeskOrbit -srcfolder "$app_path" -ov -format UDZO "$dmg_path" >/dev/null; then
+        dmg_created=true
+        break
+    fi
+    echo "DMG creation attempt $attempt failed; retrying." >&2
+    rm -f "$dmg_path"
+    sleep 2
+done
+if [[ "$dmg_created" != true ]]; then
+    echo "Unable to create $dmg_path after three attempts." >&2
+    exit 1
+fi
 if [[ "$sign_identity" != "-" ]]; then
     codesign --force --timestamp --sign "$sign_identity" "$dmg_path"
 fi
