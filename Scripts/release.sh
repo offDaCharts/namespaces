@@ -23,7 +23,7 @@ codesign --verify --deep --strict "$app_path"
 dmg_path="$release_dir/DeskOrbit-$version.dmg"
 zip_path="$release_dir/DeskOrbit-$version-macos-universal.zip"
 checksums_path="$release_dir/SHA256SUMS.txt"
-rm -f "$dmg_path" "$dmg_path.sha256" "$zip_path" "$checksums_path" "$release_dir/appcast.xml"
+rm -f "$dmg_path" "$dmg_path.sha256" "$zip_path" "$checksums_path" "$release_dir/appcast.xml" "$release_dir/DeskOrbit-$version-macos-universal.md"
 ditto -c -k --sequesterRsrc --keepParent "$app_path" "$zip_path"
 
 notary_profile=${DESKORBIT_NOTARY_PROFILE:-${NAMESPACES_NOTARY_PROFILE:-}}
@@ -88,5 +88,6 @@ if [[ -x "$sparkle_tools/generate_appcast" && -s "${DESKORBIT_SPARKLE_PRIVATE_KE
     sparkle_args+=(--ed-key-file "$DESKORBIT_SPARKLE_PRIVATE_KEY_FILE")
     "$sparkle_tools/generate_appcast" "${sparkle_args[@]}" "$sparkle_dir"
     cp "$sparkle_dir/appcast.xml" "$release_dir/appcast.xml"
+    cp "$sparkle_dir/${zip_path:t:r}.md" "$release_dir/${zip_path:t:r}.md"
 fi
 echo "$release_dir"

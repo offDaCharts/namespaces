@@ -72,6 +72,7 @@ jobs:
           fi
           files=(build/release/DeskOrbit-*.dmg build/release/DeskOrbit-*-macos-universal.zip build/release/SHA256SUMS.txt)
           if [[ -f build/release/appcast.xml ]]; then files+=(build/release/appcast.xml); fi
+          if compgen -G "build/release/DeskOrbit-*-macos-universal.md" >/dev/null; then files+=(build/release/DeskOrbit-*-macos-universal.md); fi
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" "${files[@]}" --clobber
           else
