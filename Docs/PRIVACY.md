@@ -1,6 +1,6 @@
 # Privacy and Dependency Policy
 
-Last verified: 2026-08-26, Namespaces 0.1.3.
+Last verified: 2026-08-26, Namespaces 0.1.1.
 
 Namespaces v1 is offline and local-first. It contains no analytics, advertising,
 remote configuration, account, telemetry, crash-upload, or update networking.

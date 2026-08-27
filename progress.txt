@@ -81,8 +81,6 @@ boundaries require owner permission, other hardware, or signing credentials.
 - Mission Control close detection now polls at 50 ms only while active, responds
   to native Space changes, and suppresses stale fallback labels after exact Dock
   anchors disappear.
-- Mission Control fallback label spacing matches the known-good 0.1.1 geometry;
-  the 0.1.2 full-width spacing experiment was reverted.
 - Packaged process launch: passing.
 - Live settings accessibility tree and visual inspection: passing.
 - Native rename persisted to Application Support: passing.
