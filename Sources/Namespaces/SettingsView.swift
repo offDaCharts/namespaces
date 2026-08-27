@@ -84,11 +84,32 @@ private struct SpacesSettingsView: View {
 }
 
 private struct SpaceProfileEditor: View {
+    private struct ColorOption: Identifiable {
+        let name: String
+        let hex: String
+        var id: String { hex }
+    }
+
     @EnvironmentObject var model: AppModel
     @Binding var profile: SpaceProfile
     let native: NativeSpace
     private let symbols = ["square.grid.2x2", "hammer", "terminal", "globe", "doc.text", "paintpalette", "music.note", "person.2", "book", "briefcase", "house", "sparkles"]
-    private let colors = ["#7C5CFC", "#0A84FF", "#30D158", "#FF9F0A", "#FF453A", "#BF5AF2", "#64D2FF", "#8E8E93"]
+    private let colors = [
+        ColorOption(name: "Namespace Purple", hex: "#7C5CFC"),
+        ColorOption(name: "Blue", hex: "#0A84FF"),
+        ColorOption(name: "Green", hex: "#30D158"),
+        ColorOption(name: "Orange", hex: "#FF9F0A"),
+        ColorOption(name: "Red", hex: "#FF453A"),
+        ColorOption(name: "Purple", hex: "#BF5AF2"),
+        ColorOption(name: "Cyan", hex: "#64D2FF"),
+        ColorOption(name: "Gray", hex: "#8E8E93"),
+        ColorOption(name: "Yellow", hex: "#FFD60A"),
+        ColorOption(name: "Mint", hex: "#63E6E2"),
+        ColorOption(name: "Teal", hex: "#40C8E0"),
+        ColorOption(name: "Indigo", hex: "#5E5CE6"),
+        ColorOption(name: "Pink", hex: "#FF375F"),
+        ColorOption(name: "Brown", hex: "#AC8E68"),
+    ]
     private let shortcutOptions: [(String, ShortcutSpec?)] = {
         let keyCodes: [UInt32] = [18, 19, 20, 21, 23, 22, 26, 28, 25]
         return [("None", nil)] + keyCodes.enumerated().map { ("⌥\($0.offset + 1)", ShortcutSpec(keyCode: $0.element, modifiers: 2048, display: "⌥\($0.offset + 1)")) }
@@ -103,13 +124,50 @@ private struct SpaceProfileEditor: View {
             }
             HStack {
                 Picker("Symbol", selection: $profile.symbol) { ForEach(symbols, id: \.self) { Label($0, systemImage: $0).tag($0) } }.frame(width: 190)
-                Picker("Color", selection: $profile.colorHex) { ForEach(colors, id: \.self) { color in HStack { Circle().fill(Color(hex: color)).frame(width: 10, height: 10); Text(color) }.tag(color) } }.frame(width: 160)
+                Picker("Color", selection: $profile.colorHex) {
+                    ForEach(colorOptions) { option in
+                        Label {
+                            Text("\(option.name) · \(option.hex)")
+                        } icon: {
+                            Image(nsImage: swatchImage(option.hex)).renderingMode(.original)
+                        }
+                        .labelStyle(.titleAndIcon)
+                        .tag(option.hex)
+                    }
+                }
+                .frame(width: 230)
                 Toggle("Track time", isOn: $profile.trackingEnabled); Toggle("Billable", isOn: $profile.billable)
                 Picker("Shortcut", selection: $profile.shortcut) { ForEach(shortcutOptions, id: \.0) { option in Text(option.0).tag(option.1) } }.frame(width: 130)
                 Spacer(); Button("Switch") { model.switchTo(profile) }
             }
             TextField("Search aliases, separated by commas", text: Binding(get: { profile.aliases.joined(separator: ", ") }, set: { profile.aliases = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty } }))
         }.padding(14).background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var colorOptions: [ColorOption] {
+        guard !colors.contains(where: { $0.hex == profile.colorHex }) else { return colors }
+        return [ColorOption(name: "Custom", hex: profile.colorHex)] + colors
+    }
+
+    private func swatchImage(_ hex: String) -> NSImage {
+        let value = UInt64(hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted), radix: 16) ?? 0x7C5CFC
+        let color = NSColor(
+            calibratedRed: CGFloat((value >> 16) & 0xFF) / 255,
+            green: CGFloat((value >> 8) & 0xFF) / 255,
+            blue: CGFloat(value & 0xFF) / 255,
+            alpha: 1
+        )
+        let image = NSImage(size: NSSize(width: 14, height: 14), flipped: false) { rect in
+            let swatch = NSBezierPath(ovalIn: rect.insetBy(dx: 1, dy: 1))
+            color.setFill()
+            swatch.fill()
+            NSColor.white.withAlphaComponent(0.35).setStroke()
+            swatch.lineWidth = 0.75
+            swatch.stroke()
+            return true
+        }
+        image.isTemplate = false
+        return image
     }
 }
 
