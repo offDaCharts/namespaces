@@ -16,6 +16,10 @@ Swift 6.2.3.
   manifest verify successfully.
 - Static offline/dependency and prohibited-log-content scans pass.
 - Exact packaged Release app launches, discovers six Spaces, and retains naming.
+- An isolated clean first launch produced a visible 720 × 548 onboarding window
+  plus the menu-bar item.
+- An isolated completed-onboarding launch began menu-bar-only; reopening the
+  running app then produced a visible 900 × 702 Settings window.
 - Five onboarding steps, Spaces, Shortcuts, Tracking, Automation, Data/Backup,
   and Quick Switcher surfaces were inspected live through macOS accessibility UI.
 - Quick Switcher search, Escape dismissal, display filter, action buttons, and

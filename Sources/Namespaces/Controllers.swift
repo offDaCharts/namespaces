@@ -84,7 +84,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var screenObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
+        let defaults = UserDefaults.standard
+        let completedOnboarding = defaults.bool(forKey: "didCompleteOnboarding")
+        let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development"
+        let shouldPresentUpdatedApp = completedOnboarding
+            && defaults.string(forKey: "DeskOrbit.lastPresentedVersion") != currentVersion
+        let needsVisibleLaunch = !completedOnboarding || shouldPresentUpdatedApp || !model.license.hasAccess
+        NSApp.setActivationPolicy(needsVisibleLaunch ? .regular : .accessory)
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.menu = NSMenu(); statusItem.menu?.delegate = self
         Publishers.CombineLatest(model.$data, model.$nativeSpaces).sink { [weak self] _, _ in self?.updateStatusLabel() }.store(in: &cancellables)
@@ -98,12 +104,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
             guard let self else { return }
-            if !UserDefaults.standard.bool(forKey: "didCompleteOnboarding") {
+            if !completedOnboarding {
+                defaults.set(currentVersion, forKey: "DeskOrbit.lastPresentedVersion")
                 WindowCoordinator.shared.showOnboarding(model: self.model)
+            } else if shouldPresentUpdatedApp {
+                defaults.set(currentVersion, forKey: "DeskOrbit.lastPresentedVersion")
+                WindowCoordinator.shared.showSettings(model: self.model)
             } else if !self.model.license.hasAccess {
                 WindowCoordinator.shared.showSettings(model: self.model)
             }
         }
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { WindowCoordinator.shared.showSettings(model: model) }
+        return true
     }
 
     func applicationWillTerminate(_ notification: Notification) {

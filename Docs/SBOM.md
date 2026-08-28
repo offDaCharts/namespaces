@@ -1,6 +1,6 @@
 # Software Bill of Materials
 
-DeskOrbit 0.2.0 runtime dependency inventory:
+DeskOrbit 0.2.1 runtime dependency inventory:
 
 | Component | Source | Purpose | Network capable |
 |---|---|---|---|

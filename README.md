@@ -38,9 +38,13 @@ For normal use, download the latest self-contained DMG or universal ZIP from
 Open the DMG and drag `DeskOrbit.app` to Applications. Xcode, Swift, Homebrew,
 and this source repository are not required on the destination Mac.
 
-Public releases are signed with Kauibungalow LLC's Developer ID and notarized by
-Apple. Grant Accessibility only if you want Mission Control thumbnail labels and
-window movement.
+The current GitHub release is self-contained and integrity-checked, but the
+repository's Developer ID certificate and notarization credentials have not yet
+been configured. macOS may require Control-clicking DeskOrbit and choosing
+**Open**, or approving it under **System Settings → Privacy & Security**. After
+approval, open DeskOrbit again; first launch and post-update launch now bring a
+visible window forward. Grant Accessibility only if you want Mission Control
+thumbnail labels and window movement.
 
 ### Build from source
 
@@ -83,8 +87,9 @@ swift run Namespaces
 
 ## First use
 
-1. Start DeskOrbit. Its grid icon and current Space name appear in the menu
-   bar.
+1. Start DeskOrbit. Onboarding appears on first launch. Its grid icon and current
+   Space name also appear in the menu bar. If an existing menu-bar process is
+   hidden behind the notch, open DeskOrbit again to bring Settings forward.
 2. Open **Settings → Spaces** and name each discovered desktop.
 3. Press `⌥Space` to open the Quick Switcher.
 4. Open **Capabilities** and grant Accessibility to show names on Mission

@@ -429,7 +429,7 @@ private struct LicenseSettingsView: View {
 
 private struct AboutView: View {
     @EnvironmentObject var model: AppModel
-    private var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.0" }
+    private var version: String { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.2.1" }
     var body: some View { Page(title: "DeskOrbit", subtitle: "Name, switch, and organize your Mac Spaces.") {
         Image(systemName: "square.grid.2x2.fill").font(.system(size: 72)).foregroundStyle(.tint); Text("Version \(version)").font(.headline); Text("Kauibungalow LLC · macOS \(ProcessInfo.processInfo.operatingSystemVersionString)")
         Divider(); Text("DeskOrbit adds its own labels and controls around native Spaces. It does not modify Apple's Desktop labels, inject code into Dock, disable SIP, capture the screen, or upload usage data.").foregroundStyle(.secondary)
