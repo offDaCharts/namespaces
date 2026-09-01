@@ -1,14 +1,18 @@
-# DeskOrbit 0.2.1 — Reliable Visible Launch
+# DeskOrbit 0.2.2 — Tahoe-Safe Launch
 
-This release fixes a launch experience where DeskOrbit could be running without
-showing a visible window or an obvious menu-bar item.
+This release fixes DeskOrbit appearing to do nothing when opened on macOS Tahoe
+26.6.2 while the same build opened normally on macOS Sequoia.
 
-On a first launch, after an update, or when license attention is required,
-DeskOrbit now temporarily uses a normal macOS application presence and brings
-Onboarding or Settings to the foreground. Reopening DeskOrbit while it is already
-running also brings Settings forward instead of silently returning to its hidden
-menu-bar process.
+- Startup now presents DeskOrbit before initializing optional update services.
+- macOS 26 starts in Tahoe compatibility mode and does not call undocumented
+  WindowServer Spaces functions during launch.
+- Settings opens automatically on Tahoe and explains which private-API features
+  are temporarily unavailable. Existing names, notes, tracking, preferences, and
+  license state are preserved.
+- Reopening the app still brings Settings forward.
+- A privacy-safe local launch trail is available at
+  `~/Library/Logs/DeskOrbit/launch.log` if startup ever needs diagnosis.
+- CI now packages and launches the self-contained application on an official
+  macOS 26 GitHub runner in addition to the existing macOS 15 test suite.
 
-The exact Mission Control thumbnail alignment, redesigned overlays, compact quick
-switcher, settings interface, and data-preserving update behavior from 0.2.0 are
-unchanged.
+Mission Control thumbnail styling and geometry are unchanged from 0.2.1.

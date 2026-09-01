@@ -1,9 +1,9 @@
 # Release Candidate Verification
 
-Updated 2026-08-27 on macOS 15.7.4 (24G517), Apple Silicon, Xcode 26.2,
+Updated 2026-09-01 on macOS 15.7.4 (24G517), Apple Silicon, Xcode 26.2,
 Swift 6.2.3.
 
-- 20 unit/integration tests pass from a clean SwiftPM build.
+- 21 unit/integration tests pass from a clean SwiftPM build.
 - Migration-tolerant decoding and SwiftData/JSON persistence round trips pass.
 - Backup package round trip preserves data and emits Markdown note files.
 - Topology duplicate rejection/diff and conservative reconciliation tests pass.
@@ -20,6 +20,10 @@ Swift 6.2.3.
   plus the menu-bar item.
 - An isolated completed-onboarding launch began menu-bar-only; reopening the
   running app then produced a visible 900 × 702 Settings window.
+- A forced Tahoe compatibility launch reached visible Settings before optional
+  updater initialization and did not invoke the enhanced WindowServer provider.
+- The release workflow is gated by a self-contained app launch on GitHub's
+  official `macos-26` Apple Silicon runner.
 - Five onboarding steps, Spaces, Shortcuts, Tracking, Automation, Data/Backup,
   and Quick Switcher surfaces were inspected live through macOS accessibility UI.
 - Quick Switcher search, Escape dismissal, display filter, action buttons, and
@@ -31,7 +35,9 @@ Swift 6.2.3.
   system-wide Mission Control gesture, so final per-thumbnail visual placement
   remains an owner-permission manual check on each supported macOS release.
 
-Not falsely claimed: window movement awaits owner-granted Accessibility;
-multi-display, Intel hardware, and other macOS releases await those environments;
-Developer ID/notarization awaits credentials. These do not prevent immediate
-private use on the verified Mac, and unsupported capabilities fail closed.
+Not falsely claimed: enhanced native discovery, Mission Control labeling, and
+window movement remain disabled in Tahoe compatibility mode until the private
+WindowServer ABI is separately validated on owner hardware; multi-display and
+Intel hardware await those environments; Developer ID/notarization awaits
+credentials. These do not prevent immediate private use on the verified Mac,
+and unsupported capabilities fail closed.

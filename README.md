@@ -35,6 +35,12 @@ switching, and augmenting native macOS Spaces.
 
 For normal use, download the latest self-contained DMG or universal ZIP from
 [GitHub Releases](https://github.com/offDaCharts/namespaces/releases/latest).
+
+macOS Tahoe 26 currently opens in a conservative compatibility mode because
+Apple does not provide a supported API for enumerating native Spaces. DeskOrbit
+preserves all local settings and opens normally, while private WindowServer-based
+discovery and Mission Control labels remain disabled until that macOS ABI is
+validated. Sequoia retains the full enhanced integration.
 Open the DMG and drag `DeskOrbit.app` to Applications. Xcode, Swift, Homebrew,
 and this source repository are not required on the destination Mac.
 

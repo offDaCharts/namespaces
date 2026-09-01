@@ -23,3 +23,23 @@ jobs:
         run: |
           codesign --verify --deep --strict build/DeskOrbit.app
           ! rg 'TelemetryClient|SentrySDK|FirebaseAnalytics|Amplitude|Mixpanel' Sources Package.swift
+  tahoe-launch-smoke-test:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build self-contained app on Tahoe
+        run: ./Scripts/build-app.sh release
+      - name: Verify Tahoe launch reaches visible-UI startup
+        run: |
+          rm -f "$HOME/Library/Logs/DeskOrbit/launch.log"
+          open build/DeskOrbit.app
+          for attempt in {1..20}; do
+            if grep -q 'primary UI presentation completed' "$HOME/Library/Logs/DeskOrbit/launch.log" 2>/dev/null; then
+              pgrep -x DeskOrbit
+              pkill -x DeskOrbit
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$HOME/Library/Logs/DeskOrbit/launch.log" 2>/dev/null || true
+          exit 1

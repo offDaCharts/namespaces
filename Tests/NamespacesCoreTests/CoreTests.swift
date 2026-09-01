@@ -2,6 +2,21 @@ import XCTest
 @testable import NamespacesCore
 
 final class CoreTests: XCTestCase {
+    func testTahoeCompatibilityModeProtectsNewPrivateAPIABI() {
+        XCTAssertFalse(RuntimeCompatibility.requiresTahoeCompatibilityMode(
+            operatingSystemVersion: .init(majorVersion: 15, minorVersion: 7, patchVersion: 0),
+            environment: [:]
+        ))
+        XCTAssertTrue(RuntimeCompatibility.requiresTahoeCompatibilityMode(
+            operatingSystemVersion: .init(majorVersion: 26, minorVersion: 6, patchVersion: 2),
+            environment: [:]
+        ))
+        XCTAssertFalse(RuntimeCompatibility.requiresTahoeCompatibilityMode(
+            operatingSystemVersion: .init(majorVersion: 26, minorVersion: 6, patchVersion: 2),
+            environment: ["DESKORBIT_ENABLE_EXPERIMENTAL_TAHOE_SPACES": "1"]
+        ))
+    }
+
     func testSearchRanking() {
         let code = SpaceProfile(nativeID: 1, displayID: "d", name: "Code")
         let docs = SpaceProfile(nativeID: 2, displayID: "d", name: "Documentation")

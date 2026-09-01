@@ -77,19 +77,24 @@ final class WindowCoordinator {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
-    let model = AppModel()
-    private let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+    // Keep optional integrations out of pre-window initialization. This is
+    // especially important on a new macOS major release where private Spaces
+    // APIs or an updater helper can otherwise fail before any UI is presented.
+    lazy var model = AppModel()
+    private lazy var updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
     private var statusItem: NSStatusItem!
     private var cancellables: Set<AnyCancellable> = []
     private var screenObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        LaunchDiagnostics.record("applicationDidFinishLaunching")
         let defaults = UserDefaults.standard
         let completedOnboarding = defaults.bool(forKey: "didCompleteOnboarding")
         let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development"
         let shouldPresentUpdatedApp = completedOnboarding
             && defaults.string(forKey: "DeskOrbit.lastPresentedVersion") != currentVersion
-        let needsVisibleLaunch = !completedOnboarding || shouldPresentUpdatedApp || !model.license.hasAccess
+        let isTahoeCompatibilityMode = RuntimeCompatibility.requiresTahoeCompatibilityMode()
+        let needsVisibleLaunch = isTahoeCompatibilityMode || !completedOnboarding || shouldPresentUpdatedApp || !model.license.hasAccess
         NSApp.setActivationPolicy(needsVisibleLaunch ? .regular : .accessory)
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.menu = NSMenu(); statusItem.menu?.delegate = self
@@ -102,9 +107,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         screenObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in try? await Task.sleep(for: .milliseconds(500)); OverlayController.shared.hide(); WindowCoordinator.shared.restoreReachableWindows(); self?.model.refreshSpaces() }
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
+        // Present first; initialize the updater only after DeskOrbit has an
+        // operational menu item/window. A failed optional service must never
+        // make a menu-bar app look like it did not launch.
+        DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            if !completedOnboarding {
+            if isTahoeCompatibilityMode {
+                defaults.set(currentVersion, forKey: "DeskOrbit.lastPresentedVersion")
+                WindowCoordinator.shared.showSettings(model: self.model)
+            } else if !completedOnboarding {
                 defaults.set(currentVersion, forKey: "DeskOrbit.lastPresentedVersion")
                 WindowCoordinator.shared.showOnboarding(model: self.model)
             } else if shouldPresentUpdatedApp {
@@ -112,6 +123,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 WindowCoordinator.shared.showSettings(model: self.model)
             } else if !self.model.license.hasAccess {
                 WindowCoordinator.shared.showSettings(model: self.model)
+            }
+            LaunchDiagnostics.record("primary UI presentation completed")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                _ = self?.updaterController
+                LaunchDiagnostics.record("updater initialized")
             }
         }
     }
@@ -258,9 +274,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 enum NamespacesMain {
     @MainActor
     static func main() {
+        LaunchDiagnostics.record("process entered main")
         let application = NSApplication.shared
         let delegate = AppDelegate()
         application.delegate = delegate
         withExtendedLifetime(delegate) { application.run() }
+    }
+}
+
+private enum LaunchDiagnostics {
+    static func record(_ message: String) {
+        let manager = FileManager.default
+        guard let library = manager.urls(for: .libraryDirectory, in: .userDomainMask).first else { return }
+        let directory = library.appendingPathComponent("Logs/DeskOrbit", isDirectory: true)
+        let file = directory.appendingPathComponent("launch.log")
+        let formatter = ISO8601DateFormatter()
+        let line = "\(formatter.string(from: .now)) \(message)\n"
+        do {
+            try manager.createDirectory(at: directory, withIntermediateDirectories: true)
+            if manager.fileExists(atPath: file.path), let handle = try? FileHandle(forWritingTo: file) {
+                defer { try? handle.close() }
+                try handle.seekToEnd()
+                try handle.write(contentsOf: Data(line.utf8))
+            } else {
+                try Data(line.utf8).write(to: file, options: .atomic)
+            }
+        } catch {
+            // Diagnostics are best-effort and must never affect launch.
+        }
     }
 }

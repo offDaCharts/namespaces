@@ -1,6 +1,6 @@
 # Privacy and Dependency Policy
 
-Last verified: 2026-08-28, DeskOrbit 0.2.1.
+Last verified: 2026-09-01, DeskOrbit 0.2.2.
 
 DeskOrbit is local-first. It contains no analytics, advertising, remote
 configuration, account requirement, telemetry, or crash-upload networking.
@@ -21,6 +21,11 @@ New network-capable or data-collection dependencies require owner approval, a
 documented purpose, an offline degradation path, an SBOM update, and a privacy
 review. Automatic upload SDKs are prohibited. Private data must never be logged;
 OSLog/signposts use only static operation names and aggregate state.
+
+DeskOrbit writes a local launch-stage trail to
+`~/Library/Logs/DeskOrbit/launch.log`. It contains timestamps and static startup
+milestone names only—never Space names, notes, paths, application activity,
+license keys, or other user content—and is never uploaded.
 
 Runtime dependency inventory: Apple system frameworks plus Sparkle 2.9.6 for
 cryptographically signed software updates. Build CI uses pinned-major GitHub

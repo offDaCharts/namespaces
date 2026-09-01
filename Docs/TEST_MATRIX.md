@@ -1,12 +1,12 @@
 # Compatibility and Release Test Matrix
 
-Last verified: 2026-08-27.
+Last verified: 2026-09-01.
 
 | Configuration | Build | Discovery | Switching | Overlay | Window move | Status |
 |---|---:|---:|---:|---:|---:|---|
 | macOS 15.7.4 (24G517), Apple Silicon, one display, six Spaces | Pass | Pass | Provider path pass | Pass | Permission pending | Daily-use candidate |
 | macOS 14 Sonoma | CI/build target | Pending hardware | Pending | Pending | Pending | Not yet claimed |
-| macOS 26, Apple Silicon | Build toolchain only | Pending hardware | Pending | Pending | Pending | Not yet claimed |
+| macOS 26, Apple Silicon GitHub runner | Package + launch smoke test | Safe fallback | Pending | Compatibility mode | Pending | Launch-gated in CI |
 | Intel Mac | Universal policy documented | Pending hardware | Pending | Pending | Pending | Not yet claimed |
 | Multiple displays / separate Spaces on | Pending hardware | Pending | Pending | Pending | Pending | Not yet claimed |
 
