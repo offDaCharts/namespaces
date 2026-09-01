@@ -384,7 +384,14 @@ private struct GeneralSettingsView: View {
         Toggle("Enhanced native Spaces integration", isOn: prefs.enhancedIntegrationEnabled)
             .onChange(of: prefs.wrappedValue.enhancedIntegrationEnabled) { _, _ in model.selectProvider(); model.refreshSpaces() }
         Toggle("Show names on Mission Control thumbnails", isOn: prefs.missionControlLabelsEnabled)
+        LabeledContent("Mission Control status", value: model.missionControlOverlayStatus)
         Text("DeskOrbit adds click-through colored labels over Mission Control. Apple’s Desktop 1, Desktop 2 labels are not modified. Accessibility lets DeskOrbit detect trackpad gestures and follow each thumbnail without disabling SIP.").font(.caption).foregroundStyle(.secondary)
+        if prefs.wrappedValue.missionControlLabelsEnabled && !AXIsProcessTrusted() {
+            HStack {
+                Label("Accessibility must be re-approved for this build before Mission Control labels can appear.", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                Button("Open Accessibility Settings") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!) }
+            }
+        }
         Toggle("Reveal Space strip by hovering at the top center", isOn: prefs.hoverEnabled)
         HStack { Button("Preview Space Labels") { OverlayController.shared.showSpaceLabels(duration: 5) }; Button("Grant Accessibility…") { let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary; _ = AXIsProcessTrustedWithOptions(options) }; Menu("Move Frontmost Window") { ForEach(model.profilesInDisplayOrder) { profile in Button(profile.name) { model.moveFrontmostWindow(to: profile) } } } }
         Divider(); Label("DeskOrbit makes no analytics, telemetry, advertising, or crash-report uploads.", systemImage: "hand.raised.fill").foregroundStyle(.secondary)

@@ -15,6 +15,24 @@ public enum MissionControlLayout {
         hasSeenWindow || secondsSinceOpen >= 0.7
     }
 
+    /// Tahoe exposes Mission Control as a non-shareable, display-sized Dock
+    /// window at layer 18. Older releases have used nearby overlay layers, so
+    /// accept the narrow known range while still requiring display-sized bounds.
+    public static func isMissionControlDockWindow(
+        layer: Int,
+        sharingState: Int?,
+        size: CGSize,
+        screenSizes: [CGSize]
+    ) -> Bool {
+        guard (18...24).contains(layer), sharingState != 1 else { return false }
+        return screenSizes.contains { screen in
+            size.width >= screen.width * 0.80
+                && size.height >= screen.height * 0.80
+                && size.width <= screen.width * 1.20
+                && size.height <= screen.height * 1.20
+        }
+    }
+
     public static func desktopIndex(in values: [String]) -> Int? {
         for value in values {
             let words = value.lowercased().split { !$0.isLetter && !$0.isNumber }

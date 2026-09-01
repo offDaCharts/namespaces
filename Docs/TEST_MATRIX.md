@@ -21,8 +21,9 @@ Accessibility permission is user-controlled. Until it is granted, focused-window
 movement, Shift-drag, and exact Mission Control thumbnail alignment are correctly
 reported unavailable. Labels remain hidden until exact thumbnail bounds are available.
 
-Mission Control regression checks: Dock AX notification setup/teardown; gesture-
-independent WindowServer detection; opening grace and first-scan close; native ordinal parsing;
+Mission Control regression checks: Dock AX notification setup/teardown; Tahoe
+layer-18 WindowServer signature; Accessibility-tree fallback; opening grace and
+first-scan close; native ordinal parsing;
 compact-label and full-width-container rejection; multiple-display candidate
 scoping; panel reuse; disabled preference; screen topology changes; and
 Accessibility revoked/restored while running. Pure geometry tests cover 1–16

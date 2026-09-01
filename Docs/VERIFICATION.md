@@ -3,7 +3,7 @@
 Updated 2026-09-01 on macOS 15.7.4 (24G517), Apple Silicon, Xcode 26.2,
 Swift 6.2.3.
 
-- 20 unit/integration tests pass from a clean SwiftPM build.
+- 21 unit/integration tests pass from a clean SwiftPM build.
 - Migration-tolerant decoding and SwiftData/JSON persistence round trips pass.
 - Backup package round trip preserves data and emits Markdown note files.
 - Topology duplicate rejection/diff and conservative reconciliation tests pass.

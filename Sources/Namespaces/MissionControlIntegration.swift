@@ -33,6 +33,7 @@ final class MissionControlObserver {
     private var lastAccessibilityState = false
     private var activeSince: CFTimeInterval = 0
     private var hasSeenMissionControlWindow = false
+    private var lastAccessibilityProbe: CFTimeInterval = 0
 
     private(set) var isActive = false
 
@@ -141,7 +142,15 @@ final class MissionControlObserver {
             accessibilityChanged?(accessibility)
         }
         if axObserver == nil { installDockObserverIfPossible() }
-        let detected = windowServerShowsMissionControl()
+        var detected = windowServerShowsMissionControl()
+        let now = CACurrentMediaTime()
+        if !detected, accessibility, now - lastAccessibilityProbe >= 0.50 {
+            lastAccessibilityProbe = now
+            // Tahoe has changed Mission Control's WindowServer presentation.
+            // The actual Dock thumbnail controls are a stronger independent
+            // signal whenever Accessibility is available.
+            detected = MissionControlLabelLocator.hasVisibleThumbnails()
+        }
         if detected {
             setActive(true)
             hasSeenMissionControlWindow = true
@@ -176,25 +185,24 @@ final class MissionControlObserver {
 
     private func windowServerShowsMissionControl() -> Bool {
         guard let windows = CGWindowListCopyWindowInfo(
-            [.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID
+            [.optionOnScreenOnly], kCGNullWindowID
         ) as? [[String: Any]] else { return false }
 
-        var hasOverlay = false
-        var hasDockCompanion = false
-        for window in windows where (window[kCGWindowOwnerName as String] as? String) == "Dock" {
-            let name = window[kCGWindowName as String] as? String ?? ""
-            guard name.isEmpty else { continue }
+        let dockPIDs = Set(NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.dock").map(\.processIdentifier))
+        let screenSizes = NSScreen.screens.map(\.frame.size)
+        for window in windows {
+            guard let ownerPID = (window[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value,
+                  dockPIDs.contains(ownerPID)
+            else { continue }
             let layer = window[kCGWindowLayer as String] as? Int ?? 0
-            if (18...24).contains(layer), let bounds = window[kCGWindowBounds as String] as? [String: CGFloat] {
-                let width = bounds["Width"] ?? 0
-                let height = bounds["Height"] ?? 0
-                hasOverlay = hasOverlay || NSScreen.screens.contains {
-                    width >= $0.frame.width * 0.8 && height >= $0.frame.height * 0.8
-                }
-            }
-            if layer <= 18 { hasDockCompanion = true }
+            let sharingState = (window[kCGWindowSharingState as String] as? NSNumber)?.intValue
+            guard let bounds = window[kCGWindowBounds as String] as? [String: CGFloat] else { continue }
+            let size = CGSize(width: bounds["Width"] ?? 0, height: bounds["Height"] ?? 0)
+            if MissionControlLayout.isMissionControlDockWindow(
+                layer: layer, sharingState: sharingState, size: size, screenSizes: screenSizes
+            ) { return true }
         }
-        return hasOverlay && hasDockCompanion
+        return false
     }
 }
 
@@ -265,6 +273,10 @@ enum MissionControlLabelLocator {
             }
         }
         return resolved
+    }
+
+    static func hasVisibleThumbnails() -> Bool {
+        AXIsProcessTrusted() && !accessibilityCandidates().isEmpty
     }
 
     private static func accessibilityCandidates() -> [Candidate] {

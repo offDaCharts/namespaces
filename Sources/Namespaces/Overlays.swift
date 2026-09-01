@@ -35,6 +35,19 @@ final class OverlayController {
         if mouseMonitor == nil {
             mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDown]) { [weak self] _ in Task { @MainActor in self?.handlePointer() } }
         }
+        requestAccessibilityIfNeeded(model: model)
+    }
+
+    private func requestAccessibilityIfNeeded(model: AppModel) {
+        guard model.data.preferences.missionControlLabelsEnabled, !AXIsProcessTrusted() else { return }
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development"
+        let key = "DeskOrbit.accessibilityPromptVersion"
+        guard UserDefaults.standard.string(forKey: key) != version else { return }
+        UserDefaults.standard.set(version, forKey: key)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
+            _ = AXIsProcessTrustedWithOptions(options)
+        }
     }
 
     /// Shows a manual preview outside Mission Control. Real Mission Control

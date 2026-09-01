@@ -2,6 +2,22 @@ import XCTest
 @testable import NamespacesCore
 
 final class CoreTests: XCTestCase {
+    func testTahoeMissionControlWindowSignature() {
+        let screen = CGSize(width: 3024, height: 1964)
+        XCTAssertTrue(MissionControlLayout.isMissionControlDockWindow(
+            layer: 18, sharingState: 0, size: screen, screenSizes: [screen]
+        ))
+        XCTAssertFalse(MissionControlLayout.isMissionControlDockWindow(
+            layer: 18, sharingState: 1, size: screen, screenSizes: [screen]
+        ))
+        XCTAssertFalse(MissionControlLayout.isMissionControlDockWindow(
+            layer: 18, sharingState: 0, size: CGSize(width: 800, height: 80), screenSizes: [screen]
+        ))
+        XCTAssertFalse(MissionControlLayout.isMissionControlDockWindow(
+            layer: 10, sharingState: 0, size: screen, screenSizes: [screen]
+        ))
+    }
+
     func testSearchRanking() {
         let code = SpaceProfile(nativeID: 1, displayID: "d", name: "Code")
         let docs = SpaceProfile(nativeID: 2, displayID: "d", name: "Documentation")
