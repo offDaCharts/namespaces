@@ -4,14 +4,16 @@
 <dict>
     <key>CFBundleDevelopmentRegion</key><string>en</string>
     <key>CFBundleExecutable</key><string>DeskOrbit</string>
-    <key>CFBundleIdentifier</key><string>com.kauibungalow.deskorbit</string>
+    <!-- Preserve the original Namespaces application identity through the
+         product rename so Gatekeeper, TCC permissions, and UserDefaults migrate. -->
+    <key>CFBundleIdentifier</key><string>com.offdacharts.namespaces</string>
     <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
     <key>CFBundleName</key><string>DeskOrbit</string>
     <key>CFBundleDisplayName</key><string>DeskOrbit</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>0.2.2</string>
-    <key>CFBundleVersion</key><string>10</string>
+    <key>CFBundleShortVersionString</key><string>0.2.3</string>
+    <key>CFBundleVersion</key><string>11</string>
     <key>CFBundleURLTypes</key>
     <array>
         <dict>
@@ -24,8 +26,5 @@
     <key>NSHighResolutionCapable</key><true/>
     <key>NSAppleEventsUsageDescription</key><string>DeskOrbit runs only the applications, Shortcuts, and local automations you explicitly configure.</string>
     <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Kauibungalow LLC. All rights reserved.</string>
-    <key>SUFeedURL</key><string>https://github.com/offDaCharts/namespaces/releases/latest/download/appcast.xml</string>
-    <key>SUEnableAutomaticChecks</key><true/>
-    <key>SUPublicEDKey</key><string>6m2omqzV+7UxHJLX/5r4BEi/AXbeSf3QHxXmQZstSrI=</string>
 </dict>
 </plist>

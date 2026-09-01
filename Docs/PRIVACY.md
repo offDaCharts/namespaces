@@ -1,6 +1,6 @@
 # Privacy and Dependency Policy
 
-Last verified: 2026-09-01, DeskOrbit 0.2.2.
+Last verified: 2026-09-01, DeskOrbit 0.2.3.
 
 DeskOrbit is local-first. It contains no analytics, advertising, remote
 configuration, account requirement, telemetry, or crash-upload networking.
@@ -14,8 +14,8 @@ other applications' accessibility trees and does not require Screen Recording.
 License activation, validation, and deactivation use Lemon Squeezy's License API
 over HTTPS. Those requests include only the license key and a Mac instance label;
 they exclude Space names, notes, automations, application activity, and tracking
-history. Sparkle checks Kauibungalow's signed update feed and may send routine
-compatibility data such as app version, macOS version, and architecture.
+history. DeskOrbit's native update check requests only GitHub's public latest-
+release metadata; it does not send Space names, app activity, or a device ID.
 
 New network-capable or data-collection dependencies require owner approval, a
 documented purpose, an offline degradation path, an SBOM update, and a privacy
@@ -27,6 +27,6 @@ DeskOrbit writes a local launch-stage trail to
 milestone names only—never Space names, notes, paths, application activity,
 license keys, or other user content—and is never uploaded.
 
-Runtime dependency inventory: Apple system frameworks plus Sparkle 2.9.6 for
-cryptographically signed software updates. Build CI uses pinned-major GitHub
-Actions.
+Runtime dependency inventory: Apple system frameworks only. Sparkle is used as
+release-time tooling to serve older clients but is not linked, embedded, or run
+on an end user's Mac. Build CI uses pinned-major GitHub Actions.

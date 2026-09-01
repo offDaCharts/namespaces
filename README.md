@@ -36,13 +36,11 @@ switching, and augmenting native macOS Spaces.
 For normal use, download the latest self-contained DMG or universal ZIP from
 [GitHub Releases](https://github.com/offDaCharts/namespaces/releases/latest).
 
-macOS Tahoe 26 currently opens in a conservative compatibility mode because
-Apple does not provide a supported API for enumerating native Spaces. DeskOrbit
-preserves all local settings and opens normally, while private WindowServer-based
-discovery and Mission Control labels remain disabled until that macOS ABI is
-validated. Sequoia retains the full enhanced integration.
 Open the DMG and drag `DeskOrbit.app` to Applications. Xcode, Swift, Homebrew,
 and this source repository are not required on the destination Mac.
+DeskOrbit intentionally retains the original `com.offdacharts.namespaces`
+bundle identity so existing Namespaces permissions and preferences migrate
+through the product rename.
 
 The current GitHub release is self-contained and integrity-checked, but the
 repository's Developer ID certificate and notarization credentials have not yet
@@ -71,8 +69,8 @@ To build a release app without opening it:
 ```
 
 Release builds contain both Apple Silicon and Intel slices. The release pipeline
-creates a checksummed DMG and universal ZIP, notarizes both, and generates a
-signed Sparkle appcast:
+creates a checksummed DMG and universal ZIP, notarizes both when credentials are
+available, and generates a signed compatibility appcast for older releases:
 
 ```bash
 ./Scripts/release.sh
@@ -81,8 +79,9 @@ signed Sparkle appcast:
 For Developer ID/notarization, set `DESKORBIT_SIGN_IDENTITY` and either
 `DESKORBIT_NOTARY_PROFILE` or the `DESKORBIT_NOTARY_KEY`,
 `DESKORBIT_NOTARY_KEY_ID`, and `DESKORBIT_NOTARY_ISSUER` variables. Set
-`DESKORBIT_SPARKLE_PRIVATE_KEY_FILE` for non-Keychain Sparkle signing. No secret
-is stored in this repository.
+`DESKORBIT_SPARKLE_PRIVATE_KEY_FILE` to generate the compatibility appcast used
+by older releases. Sparkle is release tooling only and is not linked or embedded
+in DeskOrbit. No secret is stored in this repository.
 
 You can also open `Package.swift` directly in Xcode or run:
 

@@ -18,16 +18,14 @@ let package = Package(
         ),
         .executableTarget(
             name: "Namespaces",
-            dependencies: [
-                "NamespacesCore",
-                .product(name: "Sparkle", package: "Sparkle"),
-            ],
+            // Sparkle remains a release-time appcast generator only. It is not
+            // linked or embedded in the application bundle.
+            dependencies: ["NamespacesCore"],
             path: "Sources/Namespaces",
             linkerSettings: [
                 .linkedFramework("AppKit"),
                 .linkedFramework("Carbon"),
                 .linkedFramework("ServiceManagement"),
-                .unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"]),
             ]
         ),
         .testTarget(

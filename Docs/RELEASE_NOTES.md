@@ -1,18 +1,24 @@
-# DeskOrbit 0.2.2 — Tahoe-Safe Launch
+# DeskOrbit 0.2.3 — Single-Executable Tahoe Fix
 
-This release fixes DeskOrbit appearing to do nothing when opened on macOS Tahoe
-26.6.2 while the same build opened normally on macOS Sequoia.
+This release fixes the actual packaging regression that made DeskOrbit appear
+not to open on macOS Tahoe even though the earlier Namespaces releases opened.
 
-- Startup now presents DeskOrbit before initializing optional update services.
-- macOS 26 starts in Tahoe compatibility mode and does not call undocumented
-  WindowServer Spaces functions during launch.
-- Settings opens automatically on Tahoe and explains which private-API features
-  are temporarily unavailable. Existing names, notes, tracking, preferences, and
-  license state are preserved.
-- Reopening the app still brings Settings forward.
-- A privacy-safe local launch trail is available at
-  `~/Library/Logs/DeskOrbit/launch.log` if startup ever needs diagnosis.
-- CI now packages and launches the self-contained application on an official
-  macOS 26 GitHub runner in addition to the existing macOS 15 test suite.
+- Removed the embedded Sparkle framework, updater app, two XPC services, and
+  autoupdate helper from the runtime app bundle.
+- Restored the single-executable bundle structure used by the working Namespaces
+  releases. CI rejects any future build that accidentally embeds frameworks or
+  XPC services.
+- Restored the original `com.offdacharts.namespaces` bundle identity. The
+  visible product name remains DeskOrbit, but macOS can now associate it with
+  the already-approved Namespaces app and its existing UserDefaults/TCC state.
+- Replaced Sparkle at runtime with a small update checker built from Apple system
+  frameworks. It offers the latest GitHub release for manual replacement.
+- Replacing DeskOrbit never changes `~/Library/Application Support/Namespaces`,
+  UserDefaults, or Keychain data, so names, notes, tracking, preferences, and
+  license state survive updates.
+- Restored enhanced native Spaces discovery and Mission Control labels on Tahoe;
+  0.2.2's provisional compatibility-mode diagnosis was incorrect.
+- Retained visible post-update launch behavior and privacy-safe launch milestones
+  at `~/Library/Logs/DeskOrbit/launch.log`.
 
-Mission Control thumbnail styling and geometry are unchanged from 0.2.1.
+Mission Control styling and geometry are unchanged.

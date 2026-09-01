@@ -19,8 +19,6 @@ final class AppModel: ObservableObject {
     @Published var hotkeyFailures: [String] = []
     @Published var missionControlOverlayStatus = "Initializing Mission Control integration…"
 
-    let isTahoeCompatibilityMode = RuntimeCompatibility.requiresTahoeCompatibilityMode()
-
     let store = DataStore()
     let license = LicenseController()
     private(set) var provider: SpaceProviding = FallbackSpaceProvider()
@@ -68,16 +66,12 @@ final class AppModel: ObservableObject {
 
     func selectProvider() {
         provider = FallbackSpaceProvider(); providerCircuitOpen = false; providerFailureCount = 0
-        if data.preferences.enhancedIntegrationEnabled && !isTahoeCompatibilityMode {
+        if data.preferences.enhancedIntegrationEnabled {
             let enhanced = EnhancedSpaceProvider()
             if enhanced.capabilities.contains(.enumerate), (try? enhanced.spaces().isEmpty) == false { provider = enhanced }
         }
         providerName = provider.name
-        if isTahoeCompatibilityMode {
-            capabilityMessage = "Tahoe compatibility mode is active. DeskOrbit opened without the private WindowServer integration while macOS 26 support is validated. Your saved names and settings are preserved."
-        } else {
-            capabilityMessage = provider.capabilities.contains(.enumerate) ? "Enhanced discovery is active. Mission Control integration is experimental." : "Fallback mode: existing saved Spaces remain available, but native discovery is unavailable."
-        }
+        capabilityMessage = provider.capabilities.contains(.enumerate) ? "Enhanced discovery is active. Mission Control integration is experimental." : "Fallback mode: existing saved Spaces remain available, but native discovery is unavailable."
     }
 
     func refreshSpaces() {
@@ -102,13 +96,7 @@ final class AppModel: ObservableObject {
         }
     }
 
-    func retryEnhancedProvider() {
-        guard !isTahoeCompatibilityMode else {
-            lastError = "Enhanced Spaces integration is temporarily disabled on macOS Tahoe because Apple changed private WindowServer behavior. DeskOrbit is running safely and your data is intact."
-            return
-        }
-        selectProvider(); refreshSpaces()
-    }
+    func retryEnhancedProvider() { selectProvider(); refreshSpaces() }
 
     private func reconcile(_ discovered: [NativeSpace]) {
         var changed = false

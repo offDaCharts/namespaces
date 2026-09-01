@@ -61,6 +61,9 @@ jobs:
           hdiutil verify build/release/DeskOrbit-*.dmg
           unzip -t build/release/DeskOrbit-*-macos-universal.zip
           (cd build/release && shasum -a 256 -c SHA256SUMS.txt)
+          test ! -d build/DeskOrbit.app/Contents/Frameworks
+          test ! -d build/DeskOrbit.app/Contents/XPCServices
+          test "$(find build/DeskOrbit.app/Contents/MacOS -type f | wc -l | tr -d ' ')" = "1"
       - name: Publish or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}

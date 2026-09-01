@@ -22,6 +22,9 @@ jobs:
       - name: Verify signature and privacy policy
         run: |
           codesign --verify --deep --strict build/DeskOrbit.app
+          test ! -d build/DeskOrbit.app/Contents/Frameworks
+          test ! -d build/DeskOrbit.app/Contents/XPCServices
+          test "$(find build/DeskOrbit.app/Contents/MacOS -type f | wc -l | tr -d ' ')" = "1"
           ! rg 'TelemetryClient|SentrySDK|FirebaseAnalytics|Amplitude|Mixpanel' Sources Package.swift
   tahoe-launch-smoke-test:
     runs-on: macos-26

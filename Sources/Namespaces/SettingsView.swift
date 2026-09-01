@@ -381,15 +381,9 @@ private struct GeneralSettingsView: View {
         Picker("Menu-bar label", selection: prefs.menuLabelMode) { ForEach(AppPreferences.MenuLabelMode.allCases, id: \.self) { Text($0.rawValue).tag($0) } }.frame(width: 300)
         Toggle("Launch at login", isOn: prefs.launchAtLogin); Toggle("Automatic local time tracking", isOn: prefs.trackingEnabled)
         HStack { Text("Idle threshold"); TextField("seconds", value: prefs.idleThreshold, format: .number).frame(width: 90); Text("seconds").foregroundStyle(.secondary) }
-        if model.isTahoeCompatibilityMode {
-            Label("Tahoe compatibility mode", systemImage: "checkmark.shield.fill").foregroundStyle(.orange)
-            Text("Private WindowServer integration is disabled on macOS 26 so DeskOrbit can launch reliably. Saved names, notes, tracking, and settings remain on this Mac. Native Space discovery and Mission Control labels are temporarily unavailable.").font(.caption).foregroundStyle(.secondary)
-        }
         Toggle("Enhanced native Spaces integration", isOn: prefs.enhancedIntegrationEnabled)
-            .disabled(model.isTahoeCompatibilityMode)
             .onChange(of: prefs.wrappedValue.enhancedIntegrationEnabled) { _, _ in model.selectProvider(); model.refreshSpaces() }
         Toggle("Show names on Mission Control thumbnails", isOn: prefs.missionControlLabelsEnabled)
-            .disabled(model.isTahoeCompatibilityMode)
         Text("DeskOrbit adds click-through colored labels over Mission Control. Apple’s Desktop 1, Desktop 2 labels are not modified. Accessibility lets DeskOrbit detect trackpad gestures and follow each thumbnail without disabling SIP.").font(.caption).foregroundStyle(.secondary)
         Toggle("Reveal Space strip by hovering at the top center", isOn: prefs.hoverEnabled)
         HStack { Button("Preview Space Labels") { OverlayController.shared.showSpaceLabels(duration: 5) }; Button("Grant Accessibility…") { let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary; _ = AXIsProcessTrustedWithOptions(options) }; Menu("Move Frontmost Window") { ForEach(model.profilesInDisplayOrder) { profile in Button(profile.name) { model.moveFrontmostWindow(to: profile) } } } }

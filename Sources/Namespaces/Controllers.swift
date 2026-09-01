@@ -1,7 +1,6 @@
 import AppKit
 import Combine
 import NamespacesCore
-import Sparkle
 import SwiftUI
 
 @MainActor
@@ -77,11 +76,8 @@ final class WindowCoordinator {
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
-    // Keep optional integrations out of pre-window initialization. This is
-    // especially important on a new macOS major release where private Spaces
-    // APIs or an updater helper can otherwise fail before any UI is presented.
     lazy var model = AppModel()
-    private lazy var updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+    private let updateController = NativeUpdateController()
     private var statusItem: NSStatusItem!
     private var cancellables: Set<AnyCancellable> = []
     private var screenObserver: NSObjectProtocol?
@@ -93,8 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let currentVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development"
         let shouldPresentUpdatedApp = completedOnboarding
             && defaults.string(forKey: "DeskOrbit.lastPresentedVersion") != currentVersion
-        let isTahoeCompatibilityMode = RuntimeCompatibility.requiresTahoeCompatibilityMode()
-        let needsVisibleLaunch = isTahoeCompatibilityMode || !completedOnboarding || shouldPresentUpdatedApp || !model.license.hasAccess
+        let needsVisibleLaunch = !completedOnboarding || shouldPresentUpdatedApp || !model.license.hasAccess
         NSApp.setActivationPolicy(needsVisibleLaunch ? .regular : .accessory)
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.menu = NSMenu(); statusItem.menu?.delegate = self
@@ -112,10 +107,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // make a menu-bar app look like it did not launch.
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            if isTahoeCompatibilityMode {
-                defaults.set(currentVersion, forKey: "DeskOrbit.lastPresentedVersion")
-                WindowCoordinator.shared.showSettings(model: self.model)
-            } else if !completedOnboarding {
+            if !completedOnboarding {
                 defaults.set(currentVersion, forKey: "DeskOrbit.lastPresentedVersion")
                 WindowCoordinator.shared.showOnboarding(model: self.model)
             } else if shouldPresentUpdatedApp {
@@ -126,8 +118,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             LaunchDiagnostics.record("primary UI presentation completed")
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-                _ = self?.updaterController
-                LaunchDiagnostics.record("updater initialized")
+                self?.updateController.checkForUpdates(userInitiated: false)
+                LaunchDiagnostics.record("native update check scheduled")
             }
         }
     }
@@ -261,7 +253,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func newActiveNote() { guard let active = model.activeProfile else { return }; WindowCoordinator.shared.showNote(model.addNote(spaceID: active.id, kind: .text), model: model) }
     @objc private func toggleTrackingPause() { var prefs = model.data.preferences; prefs.trackingPaused.toggle(); model.updatePreferences(prefs); model.trackingTick(forceBoundary: true) }
     @objc private func showHelp() { let alert = NSAlert(); alert.messageText = "DeskOrbit Help & Privacy"; alert.informativeText = "Use ⌥Space to switch by name and ⌥⇧Space to jump back. Hold Shift while dragging a standard window to reveal move targets after granting Accessibility. Data stays in ~/Library/Application Support/Namespaces and is never uploaded."; alert.addButton(withTitle: "OK"); alert.runModal() }
-    @objc private func checkUpdates() { updaterController.checkForUpdates(nil) }
+    @objc private func checkUpdates() { updateController.checkForUpdates(userInitiated: true) }
     @objc private func showSwitcher() { WindowCoordinator.shared.showSwitcher(model: model) }
     @objc private func jumpBack() { model.jumpBack() }
     @objc private func showLabels() { OverlayController.shared.showSpaceLabels() }
