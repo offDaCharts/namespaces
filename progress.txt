@@ -32,8 +32,9 @@ boundaries require owner permission, other hardware, or signing credentials.
 - Gesture-independent Mission Control detection through Dock AX notifications
   with a WindowServer fallback, plus per-desktop colored name panels that
   follow native Mission Control controls and close with Mission Control.
-- Deterministic opening-animation fallback, multi-display candidate scoping,
-  reusable click-through panels, and live integration status in Settings.
+- Native v0.1.0 anchor placement, multi-display candidate scoping, reusable
+  click-through panels, and per-session anchor diagnostics in Settings. Guessed
+  equal-slot placement has been removed.
 - Separate manual/top-of-screen preview strip retained for normal desktop use.
 - Mission Control styling matched to SpaceJump's official demo: text-only,
   translucent, compact pills inset at the thumbnail bottom with minimal shadow.
@@ -83,8 +84,7 @@ boundaries require owner permission, other hardware, or signing credentials.
 - Native rename persisted to Application Support: passing.
 - Quick Switcher fuzzy filter and Escape dismissal: passing.
 - Label overlay CGWindow creation: passing.
-- Mission Control native ordinal parsing, fallback ordering/containment, and
-  long-name non-overlap: passing.
+- Mission Control native ordinal parsing and prompt dismissal: passing.
 - Five-step onboarding and six-Space confirmation: passing live.
 - Shortcuts and tracking settings panes: passing live accessibility-tree inspection.
 - Quick Switcher display filter and action controls: passing live visual inspection.

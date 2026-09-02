@@ -11,6 +11,7 @@ final class OverlayController {
     private var hideTask: Task<Void, Never>?
     private var mouseMonitor: Any?
     private var missionControlRefreshTimer: Timer?
+    private var lastMissionControlResult: String?
     private let missionControlObserver = MissionControlObserver()
     private weak var model: AppModel?
 
@@ -100,6 +101,7 @@ final class OverlayController {
         else { endMissionControlSession(); return }
 
         let targets = MissionControlLabelLocator.targets(model: model)
+        let expectedCount = model.nativeSpaces.filter { $0.kind == .desktop }.count
         let targetIDs = Set(targets.map(\.profile.id))
         let staleIDs = missionControlPanels.keys.filter { !targetIDs.contains($0) }
         for id in staleIDs {
@@ -118,7 +120,16 @@ final class OverlayController {
             if panel.frame != target.frame { panel.setFrame(target.frame, display: true) }
             panel.orderFrontRegardless()
         }
-        model.missionControlOverlayStatus = "Active — using original 0.1.0 spacing"
+        if !AXIsProcessTrusted() {
+            lastMissionControlResult = "Accessibility was not approved for this exact build; no guessed labels were drawn"
+            model.missionControlOverlayStatus = "Active — Accessibility is not approved for this exact build"
+        } else if targets.count == expectedCount {
+            lastMissionControlResult = "used \(targets.count)/\(expectedCount) native v0.1.0 anchors"
+            model.missionControlOverlayStatus = "Active — using \(targets.count)/\(expectedCount) native v0.1.0 anchors"
+        } else {
+            lastMissionControlResult = "found \(targets.count)/\(expectedCount) native anchors; guessed spacing was suppressed"
+            model.missionControlOverlayStatus = "Active — waiting for native anchors (\(targets.count)/\(expectedCount))"
+        }
     }
 
     private func endMissionControlSession() {
@@ -129,9 +140,10 @@ final class OverlayController {
         if let model {
             model.missionControlOverlayStatus = !model.data.preferences.missionControlLabelsEnabled
                 ? "Disabled in General settings"
-                : AXIsProcessTrusted()
-                    ? "Ready — waiting for Mission Control"
-                    : "Accessibility permission is required for thumbnail-aligned labels"
+                : lastMissionControlResult.map { "Ready — last session \($0)" }
+                    ?? (AXIsProcessTrusted()
+                        ? "Ready — waiting for Mission Control"
+                        : "Accessibility permission is required for thumbnail-aligned labels")
         }
     }
 

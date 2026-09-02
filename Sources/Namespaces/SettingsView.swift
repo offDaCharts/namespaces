@@ -387,8 +387,9 @@ private struct GeneralSettingsView: View {
         LabeledContent("Mission Control status", value: model.missionControlOverlayStatus)
         Text("DeskOrbit adds click-through colored labels over Mission Control. Apple’s Desktop 1, Desktop 2 labels are not modified. Accessibility lets DeskOrbit detect trackpad gestures and follow each thumbnail without disabling SIP.").font(.caption).foregroundStyle(.secondary)
         if prefs.wrappedValue.missionControlLabelsEnabled && !AXIsProcessTrusted() {
-            HStack {
-                Label("Accessibility must be re-approved for this build before Mission Control labels can appear.", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 6) {
+                Label("Accessibility is not approved for this exact build.", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                Text("GitHub builds are currently ad-hoc signed. Remove old Namespaces and DeskOrbit entries from Accessibility, add /Applications/DeskOrbit.app again, then relaunch it. DeskOrbit will not draw guessed labels while permission is missing.").font(.caption).foregroundStyle(.secondary)
                 Button("Open Accessibility Settings") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!) }
             }
         }

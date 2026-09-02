@@ -18,16 +18,12 @@ disconnect; VoiceOver; keyboard navigation; Increase Contrast; Reduce Motion;
 offline launch and operation; signature verification.
 
 Accessibility permission is user-controlled. Until it is granted, focused-window
-movement, Shift-drag, and exact Mission Control thumbnail alignment are correctly
-reported unavailable. Mission Control labels still use the original 0.1.0
-deterministic placement fallback, so they are not hidden merely because Tahoe
-withholds thumbnail bounds.
+movement, Shift-drag, and Mission Control native-anchor placement are correctly
+reported unavailable. Guessed label positions are never drawn.
 
 Mission Control regression checks: original WindowServer detection; Dock AX
-notification setup/teardown; the exact 0.1.0 placement algorithm with no native
-geometry override; per-display ordering and containment;
+notification setup/teardown; v0.1.0 native ordinal parsing, coordinate conversion,
+and anchor selection; no guessed fallback;
 opening grace and first-scan close; native ordinal parsing;
 multiple-display candidate scoping; panel reuse; disabled preference; screen
-topology changes; and Accessibility revoked/restored while running. Pure layout
-tests verify ordering, containment, long-name caps, and non-overlap. Changes to
-fallback constants require explicit visual validation against 0.1.0.
+topology changes; and Accessibility revoked/restored while running.

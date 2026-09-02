@@ -2,9 +2,9 @@
 
 Last researched: 2026-08-27.
 
-Implementation note (2026-09-02): the exact-geometry contract below was
-superseded after macOS Tahoe exposed unreliable Dock geometry. DeskOrbit 0.2.7
-intentionally freezes placement to the proven v0.1.0 equal-slot layout.
+Implementation note (2026-09-02): DeskOrbit 0.2.8 returns to this exact-geometry
+contract after confirming that v0.1.0's good spacing came from native Dock AX
+anchors. Guessed equal-slot placement is no longer used.
 
 ## Sources and method
 

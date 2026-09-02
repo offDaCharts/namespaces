@@ -131,33 +131,6 @@ final class CoreTests: XCTestCase {
         XCTAssertNil(MissionControlLayout.desktopIndex(in: ["Desktop 0"]))
     }
 
-    func testMissionControlFallbackLayoutIsOrderedAndContained() {
-        let screen = CGRect(x: 0, y: 0, width: 1_440, height: 900)
-        let items = (1...6).map { MissionControlLayoutItem(index: $0, name: "Space \($0)") }
-        let frames = MissionControlLayout.fallbackFrames(items: items.reversed(), screenFrame: screen)
-        XCTAssertEqual(frames.count, 6)
-        for index in 1...6 {
-            guard let frame = frames[index] else { return XCTFail("Missing frame for Space \(index)") }
-            XCTAssertTrue(screen.contains(frame))
-            XCTAssertEqual(frame.height, 22)
-            if index > 1 { XCTAssertLessThan(frames[index - 1]!.midX, frame.midX) }
-        }
-    }
-
-    func testMissionControlFallbackCapsLongNamesWithoutOverlap() {
-        let screen = CGRect(x: -900, y: 100, width: 900, height: 700)
-        let items = (1...8).map {
-            MissionControlLayoutItem(index: $0, name: String(repeating: "Long", count: 30))
-        }
-        let frames = MissionControlLayout.fallbackFrames(items: items, screenFrame: screen)
-        let ordered = (1...8).compactMap { frames[$0] }
-        XCTAssertEqual(ordered.count, 8)
-        XCTAssertTrue(ordered.allSatisfy { screen.contains($0) })
-        for pair in zip(ordered, ordered.dropFirst()) {
-            XCTAssertLessThanOrEqual(pair.0.maxX, pair.1.minX)
-        }
-    }
-
     func testMissionControlCloseIsImmediateAfterPositiveDetection() {
         XCTAssertTrue(MissionControlLayout.shouldCloseAfterMissingWindow(hasSeenWindow: true, secondsSinceOpen: 0.1))
         XCTAssertFalse(MissionControlLayout.shouldCloseAfterMissingWindow(hasSeenWindow: false, secondsSinceOpen: 0.69))

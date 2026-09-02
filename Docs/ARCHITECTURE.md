@@ -21,12 +21,11 @@ the project reproducible without generated `.xcodeproj` files.
 `MissionControlObserver` listens for the Dock's accessibility Exposé lifecycle
 notifications, independent of the input method that opened Mission Control. A
 conservative, throttled `CGWindowListCopyWindowInfo` scan repairs missed open or
-close transitions. `MissionControlLabelLocator` maps the discovered native Space
-topology into the exact deterministic per-display layout shipped in v0.1.0.
-Placement uses the original screen inset, capped slot width, centering, vertical
-offset, and name-width calculation. Dock accessibility geometry never overrides
-those frames because Tahoe's partial and apparently complete trees both proved
-unstable across machines.
+close transitions. `MissionControlLabelLocator` uses v0.1.0's Dock AX traversal,
+matches Apple's desktop ordinals to native Space topology, converts Quartz
+coordinates to AppKit coordinates, and centers each badge on the native anchor.
+There is intentionally no estimated equal-slot fallback: missing approval or
+missing anchors produces a diagnostic instead of incorrectly spaced labels.
 
 `OverlayController` owns one reusable, nonactivating, click-through `NSPanel`
 per visible desktop. Panels use the screen-saver window level, join all Spaces,
