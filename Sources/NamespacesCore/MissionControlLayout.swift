@@ -17,6 +17,10 @@ public enum MissionControlLayout {
         hasSeenWindow || secondsSinceOpen >= 0.7
     }
 
+    public static func shouldUseFallback(resolvedCount: Int, expectedCount: Int) -> Bool {
+        expectedCount > 0 && resolvedCount != expectedCount
+    }
+
     public static func desktopIndex(in values: [String]) -> Int? {
         for value in values {
             let words = value.lowercased().split { !$0.isLetter && !$0.isNumber }

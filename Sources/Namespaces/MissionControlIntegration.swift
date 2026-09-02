@@ -264,20 +264,22 @@ enum MissionControlLabelLocator {
             }
         }
 
-        // During the first frames of Mission Control's animation the Dock AX
-        // tree can be temporarily empty. Fill only unresolved Spaces with a
-        // deterministic top-row position, then replace it as soon as AX settles.
-        resolvedIDs = Set(resolved.map(\.profile.id))
+        // Never mix native anchors with independently centered fallback slots.
+        // Tahoe can expose only part of the Dock tree; laying out just those
+        // missing Spaces caused the row to shift and overlap. A display is now
+        // atomic: use native centers only when every Space resolved, otherwise
+        // use the complete, known-good 0.1.0 layout for that display.
         for screen in NSScreen.screens {
             guard spaceBarIsExpanded(on: screen, candidates: candidates) else { continue }
-            let screenPairs = pairs.filter { native, profile in
-                !resolvedIDs.contains(profile.id) && belongs(native, to: screen)
-            }
+            let screenPairs = pairs.filter { belongs($0.0, to: screen) }
+            let screenProfileIDs = Set(screenPairs.map { $0.1.id })
+            let resolvedCount = resolved.lazy.filter { screenProfileIDs.contains($0.profile.id) }.count
+            guard MissionControlLayout.shouldUseFallback(
+                resolvedCount: resolvedCount,
+                expectedCount: screenPairs.count
+            ) else { continue }
+            resolved.removeAll { screenProfileIDs.contains($0.profile.id) }
             resolved.append(contentsOf: fallbackTargets(screenPairs, screen: screen))
-        }
-        if NSScreen.screens.count == 1, let screen = NSScreen.main, spaceBarIsExpanded(on: screen, candidates: candidates) {
-            let missing = pairs.filter { !Set(resolved.map(\.profile.id)).contains($0.1.id) }
-            resolved.append(contentsOf: fallbackTargets(missing, screen: screen))
         }
         return resolved
     }

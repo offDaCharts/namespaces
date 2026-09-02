@@ -1,6 +1,6 @@
 # Compatibility and Release Test Matrix
 
-Last verified: 2026-09-01.
+Last verified: 2026-09-02.
 
 | Configuration | Build | Discovery | Switching | Overlay | Window move | Status |
 |---|---:|---:|---:|---:|---:|---|
@@ -25,7 +25,8 @@ withholds thumbnail bounds.
 
 Mission Control regression checks: original WindowServer detection; Dock AX
 notification setup/teardown; Accessibility-tree alignment; the exact 0.1.0
-fallback algorithm; opening grace and first-scan close; native ordinal parsing;
+fallback algorithm; atomic per-display fallback when AX results are incomplete;
+opening grace and first-scan close; native ordinal parsing;
 multiple-display candidate scoping; panel reuse; disabled preference; screen
 topology changes; and Accessibility revoked/restored while running. Pure layout
 tests verify ordering, containment, long-name caps, and non-overlap. Changes to

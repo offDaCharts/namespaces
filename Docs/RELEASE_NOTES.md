@@ -1,8 +1,8 @@
-# DeskOrbit 0.2.5 — Original Overlay Restoration
+# DeskOrbit 0.2.6 — Stable Original Spacing
 
-This release restores the Mission Control overlay implementation and spacing
-from the original Namespaces/DeskOrbit 0.1.0 build, while retaining the later
-single-executable launch and prompt-dismissal fixes.
+This release preserves the Mission Control overlay implementation and exact
+fallback geometry from the original Namespaces/DeskOrbit 0.1.0 build while
+preventing partial Tahoe accessibility results from disrupting that spacing.
 
 - Restores the original Mission Control detection path that worked on the
   affected macOS Tahoe 26.6.2 Mac.
@@ -11,6 +11,11 @@ single-executable launch and prompt-dismissal fixes.
   Dock accessibility tree.
 - Restores the exact 0.1.0 spacing, widths, vertical position, panel behavior,
   and visual treatment.
+- Applies placement atomically per display: either every label follows a native
+  Mission Control position, or the entire display uses the complete 0.1.0 row.
+  Native and fallback positions are never mixed within one display.
+- Fixes uneven gaps and shifted labels caused when Tahoe exposed positions for
+  only some Mission Control thumbnails.
 - Still prefers live Dock accessibility positions when macOS exposes them.
 - Retains the fast 50 ms active-session close check and active-Space dismissal
   added after 0.1.0, so labels disappear promptly when Mission Control closes.

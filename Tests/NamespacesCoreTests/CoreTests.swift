@@ -158,6 +158,13 @@ final class CoreTests: XCTestCase {
         }
     }
 
+    func testMissionControlUsesOneGeometrySourcePerDisplay() {
+        XCTAssertFalse(MissionControlLayout.shouldUseFallback(resolvedCount: 8, expectedCount: 8))
+        XCTAssertTrue(MissionControlLayout.shouldUseFallback(resolvedCount: 3, expectedCount: 8))
+        XCTAssertTrue(MissionControlLayout.shouldUseFallback(resolvedCount: 0, expectedCount: 8))
+        XCTAssertFalse(MissionControlLayout.shouldUseFallback(resolvedCount: 0, expectedCount: 0))
+    }
+
     func testMissionControlCloseIsImmediateAfterPositiveDetection() {
         XCTAssertTrue(MissionControlLayout.shouldCloseAfterMissingWindow(hasSeenWindow: true, secondsSinceOpen: 0.1))
         XCTAssertFalse(MissionControlLayout.shouldCloseAfterMissingWindow(hasSeenWindow: false, secondsSinceOpen: 0.69))

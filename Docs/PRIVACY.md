@@ -1,6 +1,6 @@
 # Privacy and Dependency Policy
 
-Last verified: 2026-09-01, DeskOrbit 0.2.5.
+Last verified: 2026-09-02, DeskOrbit 0.2.6.
 
 DeskOrbit is local-first. It contains no analytics, advertising, remote
 configuration, account requirement, telemetry, or crash-upload networking.
