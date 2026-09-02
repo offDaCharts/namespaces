@@ -19,13 +19,14 @@ offline launch and operation; signature verification.
 
 Accessibility permission is user-controlled. Until it is granted, focused-window
 movement, Shift-drag, and exact Mission Control thumbnail alignment are correctly
-reported unavailable. Labels remain hidden until exact thumbnail bounds are available.
+reported unavailable. Mission Control labels still use the original 0.1.0
+deterministic placement fallback, so they are not hidden merely because Tahoe
+withholds thumbnail bounds.
 
-Mission Control regression checks: Dock AX notification setup/teardown; Tahoe
-layer-18 WindowServer signature; Accessibility-tree fallback; opening grace and
-first-scan close; native ordinal parsing;
-compact-label and full-width-container rejection; multiple-display candidate
-scoping; panel reuse; disabled preference; screen topology changes; and
-Accessibility revoked/restored while running. Pure geometry tests cover 1–16
-thumbnails across standard, portrait, ultrawide, negative-origin, and
-multi-display-style frames. No release may reintroduce estimated positions.
+Mission Control regression checks: original WindowServer detection; Dock AX
+notification setup/teardown; Accessibility-tree alignment; the exact 0.1.0
+fallback algorithm; opening grace and first-scan close; native ordinal parsing;
+multiple-display candidate scoping; panel reuse; disabled preference; screen
+topology changes; and Accessibility revoked/restored while running. Pure layout
+tests verify ordering, containment, long-name caps, and non-overlap. Changes to
+fallback constants require explicit visual validation against 0.1.0.

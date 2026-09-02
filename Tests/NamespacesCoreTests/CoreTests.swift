@@ -2,22 +2,6 @@ import XCTest
 @testable import NamespacesCore
 
 final class CoreTests: XCTestCase {
-    func testTahoeMissionControlWindowSignature() {
-        let screen = CGSize(width: 3024, height: 1964)
-        XCTAssertTrue(MissionControlLayout.isMissionControlDockWindow(
-            layer: 18, sharingState: 0, size: screen, screenSizes: [screen]
-        ))
-        XCTAssertFalse(MissionControlLayout.isMissionControlDockWindow(
-            layer: 18, sharingState: 1, size: screen, screenSizes: [screen]
-        ))
-        XCTAssertFalse(MissionControlLayout.isMissionControlDockWindow(
-            layer: 18, sharingState: 0, size: CGSize(width: 800, height: 80), screenSizes: [screen]
-        ))
-        XCTAssertFalse(MissionControlLayout.isMissionControlDockWindow(
-            layer: 10, sharingState: 0, size: screen, screenSizes: [screen]
-        ))
-    }
-
     func testSearchRanking() {
         let code = SpaceProfile(nativeID: 1, displayID: "d", name: "Code")
         let docs = SpaceProfile(nativeID: 2, displayID: "d", name: "Documentation")
@@ -147,50 +131,30 @@ final class CoreTests: XCTestCase {
         XCTAssertNil(MissionControlLayout.desktopIndex(in: ["Desktop 0"]))
     }
 
-    func testMissionControlBadgeInheritsExactThumbnailCenterAndWidth() {
+    func testMissionControlFallbackLayoutIsOrderedAndContained() {
         let screen = CGRect(x: 0, y: 0, width: 1_440, height: 900)
-        let thumbnail = CGRect(x: 217.5, y: 742, width: 181, height: 108)
-        let badge = try! XCTUnwrap(MissionControlLayout.badgeFrame(in: thumbnail, screen: screen))
-        XCTAssertEqual(badge.midX, thumbnail.midX, accuracy: 0.5)
-        XCTAssertEqual(badge.width, thumbnail.width - 12, accuracy: 1)
-        XCTAssertEqual(badge.minY, thumbnail.minY + 5, accuracy: 1)
-        XCTAssertEqual(badge.height, 22)
-        XCTAssertTrue(thumbnail.contains(badge))
+        let items = (1...6).map { MissionControlLayoutItem(index: $0, name: "Space \($0)") }
+        let frames = MissionControlLayout.fallbackFrames(items: items.reversed(), screenFrame: screen)
+        XCTAssertEqual(frames.count, 6)
+        for index in 1...6 {
+            guard let frame = frames[index] else { return XCTFail("Missing frame for Space \(index)") }
+            XCTAssertTrue(screen.contains(frame))
+            XCTAssertEqual(frame.height, 22)
+            if index > 1 { XCTAssertLessThan(frames[index - 1]!.midX, frame.midX) }
+        }
     }
 
-    func testMissionControlRejectsCompactLabelsAndFullWidthContainers() {
-        let screen = CGRect(x: 0, y: 0, width: 1_440, height: 900)
-        XCTAssertFalse(MissionControlLayout.isExpandedThumbnail(CGRect(x: 200, y: 820, width: 80, height: 22), on: screen))
-        XCTAssertFalse(MissionControlLayout.isExpandedThumbnail(CGRect(x: 0, y: 700, width: 1_440, height: 180), on: screen))
-        XCTAssertNil(MissionControlLayout.badgeFrame(in: CGRect(x: 200, y: 820, width: 80, height: 22), screen: screen))
-    }
-
-    func testMissionControlGeometryAcrossDisplaysCountsAndOrientations() {
-        let screens = [
-            CGRect(x: 0, y: 0, width: 1_440, height: 900),
-            CGRect(x: -1_920, y: -180, width: 1_920, height: 1_080),
-            CGRect(x: 1_440, y: 0, width: 1_080, height: 1_920),
-            CGRect(x: 2_520, y: 120, width: 3_440, height: 1_440),
-        ]
-        for screen in screens {
-            for count in [1, 2, 4, 8, 13, 16] {
-                let gap: CGFloat = 8
-                let available = screen.width - 60 - CGFloat(count - 1) * gap
-                let width = min(CGFloat(230), available / CGFloat(count))
-                guard width >= 70 else { continue }
-                let total = width * CGFloat(count) + CGFloat(count - 1) * gap
-                let start = screen.midX - total / 2
-                let thumbnails = (0..<count).map { index in
-                    CGRect(x: start + CGFloat(index) * (width + gap), y: screen.maxY - 150, width: width, height: 105)
-                }
-                let badges = thumbnails.compactMap { MissionControlLayout.badgeFrame(in: $0, screen: screen) }
-                XCTAssertEqual(badges.count, count, "screen=\(screen), count=\(count)")
-                for (thumbnail, badge) in zip(thumbnails, badges) {
-                    XCTAssertTrue(thumbnail.contains(badge))
-                    XCTAssertEqual(thumbnail.midX, badge.midX, accuracy: 0.5)
-                }
-                for pair in zip(badges, badges.dropFirst()) { XCTAssertLessThanOrEqual(pair.0.maxX, pair.1.minX) }
-            }
+    func testMissionControlFallbackCapsLongNamesWithoutOverlap() {
+        let screen = CGRect(x: -900, y: 100, width: 900, height: 700)
+        let items = (1...8).map {
+            MissionControlLayoutItem(index: $0, name: String(repeating: "Long", count: 30))
+        }
+        let frames = MissionControlLayout.fallbackFrames(items: items, screenFrame: screen)
+        let ordered = (1...8).compactMap { frames[$0] }
+        XCTAssertEqual(ordered.count, 8)
+        XCTAssertTrue(ordered.allSatisfy { screen.contains($0) })
+        for pair in zip(ordered, ordered.dropFirst()) {
+            XCTAssertLessThanOrEqual(pair.0.maxX, pair.1.minX)
         }
     }
 
