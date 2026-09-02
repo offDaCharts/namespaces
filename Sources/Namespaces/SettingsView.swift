@@ -387,11 +387,18 @@ private struct GeneralSettingsView: View {
         LabeledContent("Mission Control status", value: model.missionControlOverlayStatus)
         Text("DeskOrbit adds click-through colored labels over Mission Control. Apple’s Desktop 1, Desktop 2 labels are not modified. Accessibility lets DeskOrbit detect trackpad gestures and follow each thumbnail without disabling SIP.").font(.caption).foregroundStyle(.secondary)
         if prefs.wrappedValue.missionControlLabelsEnabled && !AXIsProcessTrusted() {
-            VStack(alignment: .leading, spacing: 6) {
-                Label("Accessibility is not approved for this exact build.", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text("GitHub builds are currently ad-hoc signed. Remove old Namespaces and DeskOrbit entries from Accessibility, add /Applications/DeskOrbit.app again, then relaunch it. DeskOrbit will not draw guessed labels while permission is missing.").font(.caption).foregroundStyle(.secondary)
-                Button("Open Accessibility Settings") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!) }
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange).font(.title3)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Accessibility needs approval").font(.callout.weight(.semibold))
+                    Text("Remove older Namespaces or DeskOrbit entries, add /Applications/DeskOrbit.app, then relaunch. Guessed labels stay hidden.").font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 12)
+                Button("Open Settings") { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!) }.controlSize(.small)
             }
+            .padding(10)
+            .background(.orange.opacity(0.07), in: RoundedRectangle(cornerRadius: 9))
+            .overlay { RoundedRectangle(cornerRadius: 9).stroke(.orange.opacity(0.18), lineWidth: 0.5) }
         }
         Toggle("Reveal Space strip by hovering at the top center", isOn: prefs.hoverEnabled)
         HStack { Button("Preview Space Labels") { OverlayController.shared.showSpaceLabels(duration: 5) }; Button("Grant Accessibility…") { let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary; _ = AXIsProcessTrustedWithOptions(options) }; Menu("Move Frontmost Window") { ForEach(model.profilesInDisplayOrder) { profile in Button(profile.name) { model.moveFrontmostWindow(to: profile) } } } }

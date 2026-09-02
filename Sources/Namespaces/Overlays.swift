@@ -168,13 +168,14 @@ private struct MissionControlBadgeView: View {
     let activeID: UUID?
 
     var body: some View {
-        Text(profile.name).lineLimit(1)
-        .font(.system(size: 11, weight: .semibold))
+        Text(profile.name).lineLimit(1).minimumScaleFactor(0.75)
+        .font(.system(size: 12, weight: .semibold, design: .rounded))
         .foregroundStyle(.white)
         .padding(.horizontal, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(hex: profile.colorHex).opacity(profile.id == activeID ? 0.78 : 0.70), in: RoundedRectangle(cornerRadius: 5))
-        .shadow(color: .black.opacity(0.22), radius: 1.5, y: 1)
+        .background(Color(hex: profile.colorHex).opacity(profile.id == activeID ? 0.76 : 0.68), in: RoundedRectangle(cornerRadius: 5))
+        .overlay { RoundedRectangle(cornerRadius: 5).stroke(.white.opacity(0.14), lineWidth: 0.5) }
+        .shadow(color: .black.opacity(0.14), radius: 1, y: 0.5)
     }
 }
 

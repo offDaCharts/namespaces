@@ -1,21 +1,18 @@
-# DeskOrbit 0.2.8 — Restore v0.1.0 Native Anchors
+# DeskOrbit 0.2.9 — Polished UI, Frozen Placement
 
-This release corrects the earlier misunderstanding of v0.1.0's placement
-approach. Its good spacing came from Apple's real Mission Control control
-positions—not from the equal-slot emergency fallback.
+This release restores the presentation layer from the researched 0.2.0 macOS UI
+pass without changing the working 0.2.8 Mission Control placement or lifecycle.
 
-- Restores v0.1.0's Dock Accessibility traversal, desktop-ordinal matching,
-  coordinate conversion, candidate scoring, and native-anchor badge placement.
-- Deletes guessed equal-slot placement from the runtime and core library.
-  Missing permission or missing native anchors now produces no incorrectly
-  spaced label instead of a convincing but misaligned row.
-- Reports the exact native-anchor count after every Mission Control session,
-  such as `8/8 native v0.1.0 anchors`.
-- Explains the current ad-hoc signing limitation in General Settings. Every new
-  build has a different macOS Accessibility identity until Developer ID signing
-  is configured, so the replacement app may need to be removed and re-added in
-  Privacy & Security → Accessibility.
-- Retains the Tahoe launch fix and prompt Mission Control dismissal behavior.
+- Restores the refined Mission Control badge treatment: 12-point rounded
+  semibold type, slightly softer color opacity, a subtle half-point highlight,
+  reduced shadow, and graceful scaling for longer names.
+- Keeps every label frame exactly as supplied by the v0.1.0 native-anchor path.
+  Anchor discovery, coordinate conversion, frame calculation, panel placement,
+  refresh timing, window level, and dismissal are unchanged from 0.2.8.
+- Retains the polished 0.2.0 Quick Switcher and compact Spaces settings list,
+  which were already present in the current codebase.
+- Refines the Accessibility warning into a compact native-style status callout
+  while preserving the anchor-count diagnostics that identified the prior issue.
 
-The app remains self-contained and keeps the original Namespaces bundle ID, so
-replacing the application preserves names, settings, and local data.
+The app remains self-contained and preserves existing names, settings, notes,
+tracking data, and other local data when replaced.
