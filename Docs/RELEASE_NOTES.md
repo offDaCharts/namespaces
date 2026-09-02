@@ -1,8 +1,8 @@
-# DeskOrbit 0.2.6 — Stable Original Spacing
+# DeskOrbit 0.2.7 — Forced 0.1.0 Spacing
 
-This release preserves the Mission Control overlay implementation and exact
-fallback geometry from the original Namespaces/DeskOrbit 0.1.0 build while
-preventing partial Tahoe accessibility results from disrupting that spacing.
+This release forces every Mission Control label to use the exact equal-slot
+geometry from the original Namespaces/DeskOrbit 0.1.0 build. Tahoe accessibility
+positions can no longer override or alter that spacing.
 
 - Restores the original Mission Control detection path that worked on the
   affected macOS Tahoe 26.6.2 Mac.
@@ -11,12 +11,10 @@ preventing partial Tahoe accessibility results from disrupting that spacing.
   Dock accessibility tree.
 - Restores the exact 0.1.0 spacing, widths, vertical position, panel behavior,
   and visual treatment.
-- Applies placement atomically per display: either every label follows a native
-  Mission Control position, or the entire display uses the complete 0.1.0 row.
-  Native and fallback positions are never mixed within one display.
-- Fixes uneven gaps and shifted labels caused when Tahoe exposed positions for
-  only some Mission Control thumbnails.
-- Still prefers live Dock accessibility positions when macOS exposes them.
+- Removes all native-position overrides from label placement. Every display
+  always uses the complete 0.1.0 row.
+- Keeps newer Mission Control detection and prompt-dismissal behavior separate
+  from placement, so those fixes cannot change spacing.
 - Retains the fast 50 ms active-session close check and active-Space dismissal
   added after 0.1.0, so labels disappear promptly when Mission Control closes.
 - Requests Accessibility once per app version when labels are enabled and

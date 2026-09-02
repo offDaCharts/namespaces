@@ -24,8 +24,8 @@ deterministic placement fallback, so they are not hidden merely because Tahoe
 withholds thumbnail bounds.
 
 Mission Control regression checks: original WindowServer detection; Dock AX
-notification setup/teardown; Accessibility-tree alignment; the exact 0.1.0
-fallback algorithm; atomic per-display fallback when AX results are incomplete;
+notification setup/teardown; the exact 0.1.0 placement algorithm with no native
+geometry override; per-display ordering and containment;
 opening grace and first-scan close; native ordinal parsing;
 multiple-display candidate scoping; panel reuse; disabled preference; screen
 topology changes; and Accessibility revoked/restored while running. Pure layout

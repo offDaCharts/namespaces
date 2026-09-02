@@ -1,15 +1,16 @@
 # Privacy and Dependency Policy
 
-Last verified: 2026-09-02, DeskOrbit 0.2.6.
+Last verified: 2026-09-02, DeskOrbit 0.2.7.
 
 DeskOrbit is local-first. It contains no analytics, advertising, remote
 configuration, account requirement, telemetry, or crash-upload networking.
 It never captures screenshots, window titles, URLs, clipboard data, document
 content, browser history, or keystroke content. Global monitors observe only the
 event types/modifiers necessary for configured shortcuts and window movement.
-When Mission Control labels are enabled, Accessibility reads the Dock's desktop
-control titles, positions, and sizes so labels can be aligned. It does not read
-other applications' accessibility trees and does not require Screen Recording.
+When Mission Control labels are enabled, Accessibility observes the Dock's
+Mission Control lifecycle notifications. Label placement itself uses local Space
+topology and deterministic geometry; it does not read other applications'
+accessibility trees and does not require Screen Recording.
 
 License activation, validation, and deactivation use Lemon Squeezy's License API
 over HTTPS. Those requests include only the license key and a Mac instance label;

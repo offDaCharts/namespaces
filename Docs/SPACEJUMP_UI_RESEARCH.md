@@ -2,6 +2,10 @@
 
 Last researched: 2026-08-27.
 
+Implementation note (2026-09-02): the exact-geometry contract below was
+superseded after macOS Tahoe exposed unreliable Dock geometry. DeskOrbit 0.2.7
+intentionally freezes placement to the proven v0.1.0 equal-slot layout.
+
 ## Sources and method
 
 - SpaceJump's current product page and 16-second demo video:

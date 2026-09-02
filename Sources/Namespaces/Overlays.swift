@@ -118,13 +118,7 @@ final class OverlayController {
             if panel.frame != target.frame { panel.setFrame(target.frame, display: true) }
             panel.orderFrontRegardless()
         }
-        if targets.contains(where: { $0.source == .accessibility }) {
-            model.missionControlOverlayStatus = "Active — labels aligned to Mission Control thumbnails"
-        } else if AXIsProcessTrusted() {
-            model.missionControlOverlayStatus = "Active — using animated layout fallback"
-        } else {
-            model.missionControlOverlayStatus = "Active — grant Accessibility for exact thumbnail alignment"
-        }
+        model.missionControlOverlayStatus = "Active — using original 0.1.0 spacing"
     }
 
     private func endMissionControlSession() {
