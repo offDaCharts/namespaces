@@ -1,5 +1,18 @@
 import Foundation
 
+public enum CommercialPolicy {
+    public static let trialLengthDays = 14
+    public static let priceDisplay = "$9.99"
+
+    public static func trialDaysRemaining(firstLaunch: Date, now: Date = .now) -> Int {
+        // A future first-launch timestamp means the system clock moved backwards.
+        // Do not extend a trial in that state.
+        guard firstLaunch <= now else { return 0 }
+        let end = firstLaunch.addingTimeInterval(TimeInterval(trialLengthDays * 86_400))
+        return max(0, Int(ceil(end.timeIntervalSince(now) / 86_400)))
+    }
+}
+
 public enum TrackingPolicy {
     public static func idleBoundary(now: Date, idleSeconds: TimeInterval, hasOpenSegment: Bool, wasIdle: Bool) -> Date {
         guard hasOpenSegment, !wasIdle, idleSeconds > 0 else { return now }

@@ -2,7 +2,7 @@
 
 ## 1. Introduction
 
-Namespaces is a privacy-first macOS menu-bar application for naming, navigating, and augmenting native macOS Spaces. It is intended for private use first, while preserving an engineering and distribution path toward a commercial direct-download product later.
+DeskOrbit (originally developed as Namespaces) is a privacy-first macOS menu-bar application for naming, navigating, and augmenting native macOS Spaces. The current product is moving from private daily use into a signed, notarized direct-download commercial release.
 
 The application should match the useful parts of SpaceJump and improve on its weakest areas: fragile Mission Control integration, unclear capability boundaries, stale Space mappings, hidden keyboard behavior, automation safety, documentation inconsistency, insufficient backup/restore, and ambiguous privacy behavior.
 
@@ -30,18 +30,22 @@ When asked to implement this specification, Codex should own the repository and 
 
 ## 2. Product Decisions
 
-- **Initial audience:** The repository owner and a small private group.
-- **Future audience:** Possible signed and notarized commercial direct distribution.
+- **Initial commercial audience:** A founding cohort of 25–40 invited macOS users, followed by a public paid beta.
+- **Distribution:** Signed and notarized direct distribution under Kauibungalow LLC. A Mac App Store build is out of scope while enhanced/private Space APIs are required.
 - **Minimum OS:** macOS 14 Sonoma.
 - **Hardware:** Apple Silicon and Intel where feasible; every release must at least build as a universal binary until an explicit decision changes this.
 - **UI stack:** SwiftUI for settings and data-oriented views; AppKit for menu-bar, overlay, non-activating panel, window-level, drag monitoring, and Mission Control integration.
 - **Language/toolchain:** Swift 6 language mode with strict concurrency enabled incrementally; current stable Xcode.
 - **Storage:** Local SwiftData store with explicit versioned schemas and migrations.
-- **Privacy:** No analytics, telemetry, crash upload, account, advertising SDK, remote configuration, or network requirement in v1.
+- **Privacy:** No analytics, telemetry, automatic crash upload, product account,
+  advertising SDK, or remote configuration. Network access is limited to
+  user-initiated license operations and update checks; core Space data remains
+  local and usable offline.
 - **Sync:** No sync in v1. Optional, explicit iCloud sync may be designed later, but local storage remains authoritative until that feature ships.
 - **Space integration:** A public-first provider interface with enhanced private WindowServer functionality isolated behind a replaceable adapter.
-- **Distribution:** Development builds first; Developer ID signing, notarized DMG, appcast updates, and licensing are later release phases.
-- **Licensing:** No licensing or payment code for private-use v1. The architecture must avoid making licensing a dependency of core features.
+- **Commercial model:** $9.99 one-time purchase, one license key, up to three simultaneous Mac activations, 14-day full-featured trial, and lifetime updates for the product as currently promised.
+- **Sales platform:** Lemon Squeezy as merchant of record and license-key service.
+- **Brand:** DeskOrbit by Kauibungalow LLC, sold from `deskorbit.kauibungalow.com`.
 
 ## 3. Goals
 
@@ -1774,7 +1778,7 @@ The following IDs translate the specification into verifiable engineering work p
 ## 15. Future Opportunities Requiring Separate PRDs
 
 - Opt-in iCloud/CloudKit synchronization with encryption, conflict handling, and local-first migration.
-- Commercial licensing and activation.
+- Subscription, team, or major-version-upgrade licensing beyond the approved direct-download lifetime license.
 - Optional previewed crash-report submission.
 - Workspace/window-layout capture and restoration.
 - Enter/leave-Space automation triggers with strict throttling and safety rules.
@@ -1782,6 +1786,9 @@ The following IDs translate the specification into verifiable engineering work p
 - User-authored plugins or automation action extensions.
 - App Store-safe public-only build variant.
 - Stage Manager group/context support if Apple exposes stable APIs.
+
+The commercial direct-download launch requirements are specified in
+`Docs/PUBLIC_RELEASE_PRD.md` and are part of this product specification.
 
 ## 16. Implementation Guidance for Codex
 

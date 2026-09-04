@@ -9,9 +9,19 @@ mkdir -p "$release_dir"
 version=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$project_dir/Resources/Info.plist")
 
 sign_identity=${DESKORBIT_SIGN_IDENTITY:-${NAMESPACES_SIGN_IDENTITY:--}}
+require_release_signing=${DESKORBIT_REQUIRE_RELEASE_SIGNING:-0}
 if [[ "$sign_identity" != "-" ]] && ! security find-identity -v -p codesigning | grep -Fq "$sign_identity"; then
-    echo "Signing identity '$sign_identity' is unavailable; using an ad-hoc signature." >&2
-    sign_identity="-"
+    if [[ "$require_release_signing" == "1" ]]; then
+        echo "Required signing identity '$sign_identity' is unavailable; refusing to build a public release." >&2
+        exit 1
+    else
+        echo "Signing identity '$sign_identity' is unavailable; using an ad-hoc signature." >&2
+        sign_identity="-"
+    fi
+fi
+if [[ "$require_release_signing" == "1" && "$sign_identity" == "-" ]]; then
+    echo "Public releases require a Developer ID Application identity." >&2
+    exit 1
 fi
 if [[ "$sign_identity" == "-" ]]; then
     codesign --force --deep --sign - --entitlements "$project_dir/Resources/Namespaces.entitlements" "$app_path"
@@ -35,6 +45,10 @@ if [[ -n "$notary_profile" ]]; then
     notary_args=(--keychain-profile "$notary_profile")
 elif [[ -n "$notary_key" && -n "$notary_key_id" && -n "$notary_issuer" ]]; then
     notary_args=(--key "$notary_key" --key-id "$notary_key_id" --issuer "$notary_issuer")
+fi
+if [[ "$require_release_signing" == "1" && ${#notary_args[@]} -eq 0 ]]; then
+    echo "Public releases require notarization credentials." >&2
+    exit 1
 fi
 
 if (( ${#notary_args[@]} )); then

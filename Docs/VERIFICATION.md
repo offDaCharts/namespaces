@@ -3,7 +3,8 @@
 Updated 2026-09-02 on macOS 15.7.4 (24G517), Apple Silicon, Xcode 26.2,
 Swift 6.2.3.
 
-- 17 unit/integration tests pass from a clean SwiftPM build.
+- 19 unit/integration tests pass from a clean SwiftPM build, including the
+  approved commercial offer and trial-boundary/clock-rollback policy.
 - Migration-tolerant decoding and SwiftData/JSON persistence round trips pass.
 - Backup package round trip preserves data and emits Markdown note files.
 - Topology duplicate rejection/diff and conservative reconciliation tests pass.
@@ -15,6 +16,10 @@ Swift 6.2.3.
 - App bundle signature, plist, entitlements, DMG filesystem checksum, and SHA-256
   manifest verify successfully.
 - Static offline/dependency and prohibited-log-content scans pass.
+- The privacy-redacted support report requires an explicit preview followed by
+  a separate copy or save action; it has no upload action.
+- Public release automation fails closed when any Developer ID, notarization,
+  or Sparkle signing credential is absent.
 - Exact packaged Release app launches, discovers six Spaces, and retains naming.
 - An isolated clean first launch produced a visible 720 × 548 onboarding window
   plus the menu-bar item.

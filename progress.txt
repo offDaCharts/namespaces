@@ -3,11 +3,34 @@
 This file preserves durable implementation state for Codex across long runs,
 context compaction, restarts, and handoffs. It is not a Ralph-loop control file.
 
+## Public launch preparation (2026-09-03)
+
+- Published the DeskOrbit staging website with product, feature, privacy,
+  compatibility, help, terms, refund, founding-cohort, and $9.99 pricing pages.
+- Reserved `deskorbit.kauibungalow.com`; Cloudflare DNS verification remains an
+  owner-account step. The anonymous staging URL and all six routes return HTTP
+  200 after correcting the site access policy and republishing.
+- Updated the app to the approved $9.99 one-time offer with a 14-day trial and
+  added deterministic policy tests, including clock-rollback handling.
+- Added stable per-installation activation labels so repeated Mac names can be
+  distinguished without sending Space data.
+- Added a locally generated, privacy-redacted support-report preview with
+  explicit copy/save actions and no upload path.
+- Made public release automation fail closed unless Developer ID, notarization,
+  and Sparkle signing credentials are all present.
+- Verified Apple Developer access as Quin Thames under Kauibungalow LLC / team
+  `Q3T7CAZ6NT`, generated a protected local CSR/private key, and staged the G2
+  Developer ID Application request for owner confirmation.
+- Verified the Kauibungalow Lemon Squeezy test store already has a published
+  DeskOrbit product with unlimited license duration, three activations, and
+  prepared checkout/receipt copy; the price update is staged for owner approval.
+
 ## Current Milestone
 
-Private-use release candidate. The native app is buildable, packaged, running,
-and live-verified on the repository owner's current Mac. Remaining verification
-boundaries require owner permission, other hardware, or signing credentials.
+Founding Tester launch preparation. The native app is buildable, packaged,
+running, and live-verified on the repository owner's current Mac; the public
+staging website is deployed. Production signing, DNS, payments, and the broader
+hardware matrix remain gated as documented below.
 
 ## Completed and Verified
 
@@ -91,9 +114,16 @@ boundaries require owner permission, other hardware, or signing credentials.
 
 ## Blockers Requiring User Action
 
-- Accessibility permission must be granted by the user before focused-window,
-  Shift-drag, and exact Mission Control thumbnail placement can be fully
-  exercised. All non-permission-dependent implementation and testing is complete.
+- Confirm the staged Apple Developer ID Application certificate creation, then
+  download/import it and secure its private key for CI.
+- Request App Store Connect API access, then create a least-privilege
+  notarization key after Apple grants access.
+- Sign in to Cloudflare as `quin@kauibungalow.com` so the three required DNS
+  records can be added for `deskorbit.kauibungalow.com`.
+- Confirm the staged Lemon Squeezy test-product price change from $3.99 to $9.99;
+  business/payout activation and any real transaction require separate review.
+- Accessibility permission and the missing Sonoma/Intel/multi-display hardware
+  are still needed for the full compatibility and upgrade matrix.
 
 ## Learnings
 

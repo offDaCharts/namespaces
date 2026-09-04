@@ -342,36 +342,20 @@ private struct CapabilityRow: View { let name: String; let available: Bool; var 
 
 private struct DataSettingsView: View {
     @EnvironmentObject var model: AppModel
-    var body: some View { Page(title: "Data & Backup", subtitle: "All data is local. Backups are readable versioned JSON and tracking exports are CSV.") {
-        LabeledContent("Local store", value: model.store.fileURL.path); LabeledContent("Spaces", value: "\(model.data.spaces.count)"); LabeledContent("Notes", value: "\(model.data.notes.count)"); LabeledContent("Tracking segments", value: "\(model.data.segments.count)")
-        HStack { Button("Export Full Backup…", action: exportBackup); Button("Restore Backup…", action: importBackup); Button("Export Tracking CSV…", action: exportCSV); Button("Export Diagnostics…", action: exportDiagnostics) }
-        HStack { Picker("Automatic local backups", selection: Binding(get: { model.data.preferences.rollingBackupRetention }, set: { var p = model.data.preferences; p.rollingBackupRetention = $0; model.updatePreferences(p) })) { Text("Off").tag(0); Text("Keep 7 daily copies").tag(7); Text("Keep 30 daily copies").tag(30) }.frame(width: 320); Spacer(); Button("Factory Reset…", role: .destructive, action: factoryReset) }
-        Text("Restore validates the schema and file size before replacing local state. Keep a backup before restoring over active data.").font(.caption).foregroundStyle(.secondary)
-    } }
+    @State private var supportReport: SupportReport?
+    var body: some View {
+        Page(title: "Data & Backup", subtitle: "All data is local. Backups are readable versioned JSON and tracking exports are CSV.") {
+            LabeledContent("Local store", value: model.store.fileURL.path); LabeledContent("Spaces", value: "\(model.data.spaces.count)"); LabeledContent("Notes", value: "\(model.data.notes.count)"); LabeledContent("Tracking segments", value: "\(model.data.segments.count)")
+            HStack { Button("Export Full Backup…", action: exportBackup); Button("Restore Backup…", action: importBackup); Button("Export Tracking CSV…", action: exportCSV); Button("Create Support Report…") { supportReport = SupportReport.make(from: model) } }
+            HStack { Picker("Automatic local backups", selection: Binding(get: { model.data.preferences.rollingBackupRetention }, set: { var p = model.data.preferences; p.rollingBackupRetention = $0; model.updatePreferences(p) })) { Text("Off").tag(0); Text("Keep 7 daily copies").tag(7); Text("Keep 30 daily copies").tag(30) }.frame(width: 320); Spacer(); Button("Factory Reset…", role: .destructive, action: factoryReset) }
+            Text("Restore validates the schema and file size before replacing local state. Support reports are previewed before export and exclude Space names, notes, paths, app activity, automation contents, and license keys.").font(.caption).foregroundStyle(.secondary)
+        }
+        .sheet(item: $supportReport) { report in SupportReportPreview(report: report) { supportReport = nil } }
+    }
     private func exportBackup() { let panel = NSSavePanel(); panel.nameFieldStringValue = "Namespaces-Backup.namespacesbackup"; guard panel.runModal() == .OK, let url = panel.url else { return }; Task { do { try await model.store.exportPackage(model.data, to: url) } catch { await MainActor.run { model.lastError = error.localizedDescription } } } }
     private func importBackup() { let panel = NSOpenPanel(); panel.canChooseDirectories = true; panel.canChooseFiles = true; guard panel.runModal() == .OK, let url = panel.url else { return }; Task { do { let data = try await model.store.decodeBackup(at: url); let approved = await MainActor.run { let alert = NSAlert(); alert.messageText = "Restore Namespaces Backup?"; alert.informativeText = "This validated backup contains \(data.spaces.count) Spaces, \(data.notes.count) notes, \(data.automations.count) automation groups, and \(data.segments.count) tracking segments. Current data will be replaced only if the validated replacement is saved successfully."; alert.addButton(withTitle: "Restore"); alert.addButton(withTitle: "Cancel"); return alert.runModal() == .alertFirstButtonReturn }; if approved { await model.importBackup(data) } } catch { await MainActor.run { model.lastError = error.localizedDescription } } } }
     private func factoryReset() { let alert = NSAlert(); alert.alertStyle = .critical; alert.messageText = "Reset Namespaces?"; alert.informativeText = "This removes all Namespaces names, notes, automations, tracking history, and settings from this Mac. Export a backup first if you may need them. This cannot be undone."; alert.addButton(withTitle: "Cancel"); alert.addButton(withTitle: "Reset Everything"); guard alert.runModal() == .alertSecondButtonReturn else { return }; Task { await model.factoryReset() } }
     private func exportCSV() { let panel = NSSavePanel(); panel.nameFieldStringValue = "Namespaces-Tracking.csv"; guard panel.runModal() == .OK, let url = panel.url else { return }; do { try CSVExporter.trackingCSV(segments: model.data.segments, spaces: model.data.spaces).write(to: url, atomically: true, encoding: .utf8) } catch { model.lastError = error.localizedDescription } }
-    private func exportDiagnostics() { let capabilities = ["enumerate": model.provider.capabilities.contains(.enumerate), "switch": model.provider.capabilities.contains(.switchSpace), "moveWindow": model.provider.capabilities.contains(.moveWindow), "labels": model.provider.capabilities.contains(.missionControlLabels)]; let text = """
-    Namespaces diagnostics (privacy-redacted)
-    Version: \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development") (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "development"))
-    macOS: \(ProcessInfo.processInfo.operatingSystemVersionString)
-    Architecture: \(ProcessInfo.processInfo.machineHardwareName)
-    Provider: \(model.providerName)
-    Capabilities: \(capabilities)
-    Provider circuit open: \(model.providerCircuitOpen)
-    Accessibility: \(AXIsProcessTrusted())
-    Displays observed: \(Set(model.nativeSpaces.map(\.displayID)).count)
-    Spaces observed: \(model.nativeSpaces.count)
-    Saved profiles: \(model.data.spaces.count)
-    Unmatched profiles: \(model.data.spaces.filter { model.native(for: $0) == nil }.count)
-    Notes: \(model.data.notes.count)
-    Automation groups: \(model.data.automations.count)
-    Tracking segments: \(model.data.segments.count)
-    Last error category: \(model.lastError == nil ? "none" : "present (content redacted)")
-
-    Space names, note content, paths, app identifiers, script names, and tracking details are excluded.
-    """; let alert = NSAlert(); alert.messageText = "Diagnostics Export Preview"; alert.informativeText = text; alert.addButton(withTitle: "Export…"); alert.addButton(withTitle: "Cancel"); guard alert.runModal() == .alertFirstButtonReturn else { return }; let panel = NSSavePanel(); panel.nameFieldStringValue = "Namespaces-Diagnostics.txt"; guard panel.runModal() == .OK, let url = panel.url else { return }; do { try text.write(to: url, atomically: true, encoding: .utf8) } catch { model.lastError = error.localizedDescription } }
 }
 
 private struct GeneralSettingsView: View {
@@ -427,7 +411,7 @@ private struct LicenseSettingsView: View {
                 Button("Activate License") { Task { if await model.license.activate(licenseKey) { licenseKey = "" } } }
                     .keyboardShortcut(.defaultAction)
                     .disabled(model.license.isWorking || licenseKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                Button("Buy DeskOrbit — $3.99") { NSWorkspace.shared.open(model.license.purchaseURL) }
+                Button("Buy DeskOrbit — \(model.license.priceDisplay)") { NSWorkspace.shared.open(model.license.purchaseURL) }
             }
         } else {
             HStack {

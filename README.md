@@ -110,11 +110,15 @@ All content is stored at:
 ~/Library/Application Support/Namespaces/Namespaces.json
 ```
 
-DeskOrbit includes a 14-day full-feature trial and a $3.99 one-time license for
+DeskOrbit includes a 14-day full-feature trial and a $9.99 one-time license for
 up to three Macs. License requests include only the key and a Mac instance label.
 DeskOrbit has no analytics, advertising, or automatic crash upload. Experimental
 integration is isolated and fails closed when the current macOS build does not
 expose the required WindowServer capabilities.
+
+If support is needed, **Settings → Data & Backup → Create Support Report**
+builds a privacy-redacted report locally and previews the exact text before the
+user chooses to copy or save it. Nothing is uploaded automatically.
 
 ### Mission Control names
 

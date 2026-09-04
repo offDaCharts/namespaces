@@ -2,6 +2,34 @@ import XCTest
 @testable import NamespacesCore
 
 final class CoreTests: XCTestCase {
+    func testCommercialPolicyUsesApprovedOffer() {
+        XCTAssertEqual(CommercialPolicy.trialLengthDays, 14)
+        XCTAssertEqual(CommercialPolicy.priceDisplay, "$9.99")
+    }
+
+    func testTrialPolicyCountsPartialDaysAndRejectsClockRollback() {
+        let firstLaunch = Date(timeIntervalSince1970: 1_000)
+        XCTAssertEqual(CommercialPolicy.trialDaysRemaining(firstLaunch: firstLaunch, now: firstLaunch), 14)
+        XCTAssertEqual(
+            CommercialPolicy.trialDaysRemaining(
+                firstLaunch: firstLaunch,
+                now: firstLaunch.addingTimeInterval(13 * 86_400 + 1)
+            ),
+            1
+        )
+        XCTAssertEqual(
+            CommercialPolicy.trialDaysRemaining(
+                firstLaunch: firstLaunch,
+                now: firstLaunch.addingTimeInterval(14 * 86_400)
+            ),
+            0
+        )
+        XCTAssertEqual(
+            CommercialPolicy.trialDaysRemaining(firstLaunch: firstLaunch, now: firstLaunch.addingTimeInterval(-1)),
+            0
+        )
+    }
+
     func testSearchRanking() {
         let code = SpaceProfile(nativeID: 1, displayID: "d", name: "Code")
         let docs = SpaceProfile(nativeID: 2, displayID: "d", name: "Documentation")

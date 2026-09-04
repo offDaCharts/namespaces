@@ -13,7 +13,8 @@ positions, and sizes. It does not read other applications' accessibility trees
 and does not require Screen Recording.
 
 License activation, validation, and deactivation use Lemon Squeezy's License API
-over HTTPS. Those requests include only the license key and a Mac instance label;
+over HTTPS. Those requests include only the license key and a Mac instance label
+made from the local computer name and a random installation-ID prefix;
 they exclude Space names, notes, automations, application activity, and tracking
 history. DeskOrbit's native update check requests only GitHub's public latest-
 release metadata; it does not send Space names, app activity, or a device ID.
@@ -27,6 +28,14 @@ DeskOrbit writes a local launch-stage trail to
 `~/Library/Logs/DeskOrbit/launch.log`. It contains timestamps and static startup
 milestone names only—never Space names, notes, paths, application activity,
 license keys, or other user content—and is never uploaded.
+
+The optional support report is generated locally and shown in full before the
+user can copy or save it. It contains app/OS/build information, capability and
+permission state, display geometry, aggregate record counts, static launch
+stages, and DeskOrbit crash-report filenames. It intentionally excludes Space
+names, note/checklist content, file paths, window titles, app identifiers and
+activity, automation names and bodies, tracking details, the device name,
+license keys, and license activation IDs. DeskOrbit never uploads it.
 
 Runtime dependency inventory: Apple system frameworks only. Sparkle is used as
 release-time tooling to serve older clients but is not linked, embedded, or run

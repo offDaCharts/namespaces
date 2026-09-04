@@ -1,5 +1,18 @@
 # DeskOrbit 0.2.9 — Polished UI, Frozen Placement
 
+## Public launch preparation (unreleased)
+
+- Updates the commercial offer to a $9.99 one-time purchase with a 14-day trial
+  and three Mac activations.
+- Adds a privacy-redacted support report that is previewed before explicit copy
+  or save; DeskOrbit does not upload it.
+- Gives each installation a stable activation-label suffix so similarly named
+  Macs can be managed safely.
+- Makes public release automation fail closed unless Developer ID,
+  notarization, and Sparkle signing credentials are present.
+- Leaves the proven v0.1.0 Mission Control anchor placement and the current
+  overlay lifecycle untouched.
+
 This release restores the presentation layer from the researched 0.2.0 macOS UI
 pass without changing the working 0.2.8 Mission Control placement or lifecycle.
 

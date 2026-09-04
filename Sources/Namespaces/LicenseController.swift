@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import NamespacesCore
 import Security
 
 @MainActor
@@ -14,12 +15,14 @@ final class LicenseController: ObservableObject {
     @Published private(set) var isWorking = false
     @Published private(set) var lastError: String?
 
-    let trialLengthDays = 14
+    let trialLengthDays = CommercialPolicy.trialLengthDays
+    let priceDisplay = CommercialPolicy.priceDisplay
     let purchaseURL = URL(string: "https://deskorbit.kauibungalow.com/#buy")!
 
     private let defaults = UserDefaults.standard
     private let firstLaunchKey = "DeskOrbit.firstLaunchDate"
     private let instanceIDKey = "DeskOrbit.licenseInstanceID"
+    private let installationIDKey = "DeskOrbit.installationID"
     private let service = "com.kauibungalow.deskorbit.license"
     private let account = "license-key"
     private var licenseKey: String?
@@ -65,7 +68,7 @@ final class LicenseController: ObservableObject {
         do {
             let response: ActivateResponse = try await post(
                 path: "activate",
-                fields: ["license_key": key, "instance_name": Self.instanceName]
+                fields: ["license_key": key, "instance_name": instanceName]
             )
             guard response.activated, let instance = response.instance else {
                 throw LicenseError.server(response.error ?? "The license could not be activated.")
@@ -141,8 +144,7 @@ final class LicenseController: ObservableObject {
             return
         }
         let firstLaunch = defaults.object(forKey: firstLaunchKey) as? Date ?? .now
-        let end = Calendar.current.date(byAdding: .day, value: trialLengthDays, to: firstLaunch) ?? firstLaunch
-        let remaining = Int(ceil(end.timeIntervalSinceNow / 86_400))
+        let remaining = CommercialPolicy.trialDaysRemaining(firstLaunch: firstLaunch)
         state = remaining > 0 ? .trial(daysRemaining: remaining) : .expired
     }
 
@@ -156,6 +158,7 @@ final class LicenseController: ObservableObject {
     private func post<Response: Decodable>(path: String, fields: [String: String]) async throws -> Response {
         var request = URLRequest(url: URL(string: "https://api.lemonsqueezy.com/v1/licenses/\(path)")!)
         request.httpMethod = "POST"
+        request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         var components = URLComponents()
@@ -164,19 +167,25 @@ final class LicenseController: ObservableObject {
 
         let (data, urlResponse) = try await URLSession.shared.data(for: request)
         guard let response = urlResponse as? HTTPURLResponse else { throw LicenseError.invalidResponse }
-        let decoded = try JSONDecoder().decode(Response.self, from: data)
         guard (200..<300).contains(response.statusCode) else {
             if let failure = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
                 throw LicenseError.server(failure.error)
             }
             throw LicenseError.server("The license server returned HTTP \(response.statusCode).")
         }
-        return decoded
+        return try JSONDecoder().decode(Response.self, from: data)
     }
 
-    private static var instanceName: String {
+    private var instanceName: String {
         let computer = Host.current().localizedName ?? "Mac"
-        return "\(computer) · DeskOrbit"
+        let installationID: String
+        if let existing = defaults.string(forKey: installationIDKey) {
+            installationID = existing
+        } else {
+            installationID = UUID().uuidString
+            defaults.set(installationID, forKey: installationIDKey)
+        }
+        return "\(computer) · DeskOrbit · \(installationID.prefix(8))"
     }
 
     private static func readKeychain(service: String, account: String) -> String? {
