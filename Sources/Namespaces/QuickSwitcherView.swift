@@ -44,7 +44,7 @@ struct QuickSwitcherView: View {
                 .background(.white.opacity(0.075), in: RoundedRectangle(cornerRadius: 7))
                 .padding(.horizontal, 12).padding(.bottom, 8)
 
-            if let previous = model.data.recentSpaceIDs.first.flatMap({ id in model.data.spaces.first { $0.id == id } }) {
+            if let previous = model.previousProfile {
                 Button { model.jumpBack(); onClose() } label: {
                     HStack(spacing: 8) {
                         Text("0").font(.caption.monospacedDigit()).frame(width: 22, height: 22).background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 5))
@@ -80,10 +80,14 @@ struct QuickSwitcherView: View {
                 Button("Rename") { beginRename() }.buttonStyle(.plain).keyboardShortcut(.return, modifiers: .command)
             }.font(.caption2).foregroundStyle(.tertiary).padding(.horizontal, 12).frame(height: 30)
         }
-        .frame(width: 380, height: 410)
+        .frame(minWidth: 280, idealWidth: 380, maxWidth: .infinity, minHeight: 260, idealHeight: 410, maxHeight: .infinity)
         .background(.ultraThickMaterial)
         .onChange(of: query) { selected = 0 }
         .onChange(of: displayFilter) { _, _ in selected = 0; if displayFilter != "all", !model.nativeSpaces.contains(where: { $0.displayID == displayFilter }) { displayFilter = "all" } }
+        .onChange(of: model.nativeSpaces) { _, spaces in
+            if displayFilter != "all", !spaces.contains(where: { $0.displayID == displayFilter }) { displayFilter = "all" }
+            selected = min(selected, max(0, results.count - 1))
+        }
         .onKeyPress(.upArrow) { selected = max(0, selected - 1); return .handled }
         .onKeyPress(.downArrow) { selected = min(max(0, results.count - 1), selected + 1); return .handled }
         .onKeyPress(.escape) { onClose(); return .handled }
@@ -97,7 +101,7 @@ struct QuickSwitcherView: View {
                 Text("\(index + 1)").font(.caption.weight(.semibold).monospacedDigit()).foregroundStyle(.white)
                     .frame(width: 25, height: 25).background(Color(hex: profile.colorHex).opacity(0.82), in: RoundedRectangle(cornerRadius: 6))
                 if renamingID == profile.id {
-                    TextField("Space name", text: Binding(get: { model.data.spaces.first(where: { $0.id == profile.id })?.name ?? profile.name }, set: { value in var copy = profile; copy.name = value; model.updateProfile(copy) })).onSubmit { renamingID = nil }
+                    TextField("Space name", text: Binding(get: { model.data.spaces.first(where: { $0.id == profile.id })?.name ?? profile.name }, set: { value in guard var copy = model.data.spaces.first(where: { $0.id == profile.id }) else { return }; copy.name = value; model.updateProfile(copy) })).onSubmit { renamingID = nil }
                 } else {
                     Text(profile.name).fontWeight(isSelected ? .semibold : .regular).lineLimit(1)
                 }

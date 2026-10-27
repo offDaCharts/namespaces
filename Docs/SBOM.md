@@ -1,6 +1,6 @@
 # Software Bill of Materials
 
-DeskOrbit 0.2.9 runtime dependency inventory:
+DeskOrbit 0.3.0 runtime dependency inventory:
 
 | Component | Source | Purpose | Network capable |
 |---|---|---|---|
@@ -11,6 +11,7 @@ DeskOrbit 0.2.9 runtime dependency inventory:
 | CryptoKit | macOS | Script approval hashes | No |
 | OSLog | macOS | Privacy-safe diagnostics/signposts | No |
 | URLSession | Apple Foundation | GitHub release check and license requests | Yes |
+| Darwin Unix sockets / Foundation JSON | macOS | Local opt-in MCP IPC | Local only; no TCP/HTTP listener |
 
 DeskOrbit contacts GitHub's public latest-release endpoint and Lemon Squeezy's
 HTTPS License API directly with `URLSession`; no networking SDK is embedded.
@@ -20,3 +21,7 @@ is not present in the runtime app bundle.
 Build and release automation uses GitHub's pinned-major `actions/checkout@v4`
 and `actions/upload-artifact@v4`. Neither is included in the application or runs
 on an end user's Mac.
+
+The small MCP tools-only protocol implementation is repository-owned Swift.
+It adds no third-party runtime packages. Python's standard library is used for
+developer/CI subprocess smoke tests only; it is not shipped or required by users.

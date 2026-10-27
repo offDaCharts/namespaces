@@ -15,17 +15,17 @@ final class WindowCoordinator {
         if let settingsWindow { settingsWindow.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); return }
         let view = SettingsView().environmentObject(model)
         let window = NSWindow(contentViewController: NSHostingController(rootView: view))
-        window.title = "DeskOrbit Settings"; window.setContentSize(NSSize(width: 900, height: 650)); window.minSize = NSSize(width: 760, height: 520)
+        window.title = "DeskOrbit Settings"; window.setContentSize(NSSize(width: 900, height: 650)); window.minSize = NSSize(width: 760, height: 420)
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable]; window.center(); window.isReleasedWhenClosed = false
-        settingsWindow = window; window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
+        settingsWindow = window; restoreReachableWindows(); window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
     }
 
     func showOnboarding(model: AppModel) {
         if let onboardingWindow { onboardingWindow.makeKeyAndOrderFront(nil); return }
         let view = OnboardingView { [weak self] in self?.onboardingWindow?.close(); self?.onboardingWindow = nil; self?.showSettings(model: model) }.environmentObject(model)
         let window = NSWindow(contentViewController: NSHostingController(rootView: view))
-        window.title = "Welcome to DeskOrbit"; window.styleMask = [.titled, .closable]; window.setContentSize(NSSize(width: 720, height: 520)); window.center(); window.isReleasedWhenClosed = false
-        onboardingWindow = window; window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
+        window.title = "Welcome to DeskOrbit"; window.styleMask = [.titled, .closable, .resizable]; window.setContentSize(NSSize(width: 720, height: 520)); window.minSize = NSSize(width: 500, height: 400); window.center(); window.isReleasedWhenClosed = false
+        onboardingWindow = window; restoreReachableWindows(); window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
     }
 
     func showSwitcher(model: AppModel) {
@@ -41,7 +41,7 @@ final class WindowCoordinator {
         panel.setContentSize(NSSize(width: 380, height: 410)); panel.isReleasedWhenClosed = false
         let screen = NSScreen.screens.first(where: { $0.frame.contains(NSEvent.mouseLocation) }) ?? NSScreen.main
         if let frame = screen?.visibleFrame { panel.setFrameOrigin(NSPoint(x: frame.midX - 190, y: frame.midY - 170)) }
-        switcherPanel = panel; panel.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
+        switcherPanel = panel; restoreReachableWindows(); panel.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
     }
 
     func showNote(_ note: SpaceNote, model: AppModel) {
@@ -59,10 +59,9 @@ final class WindowCoordinator {
     func hideAllNotes() { noteWindows.values.forEach { $0.orderOut(nil) } }
     func restoreReachableWindows() {
         let visible = NSScreen.screens.map(\.visibleFrame)
-        for window in ([settingsWindow, switcherPanel, onboardingWindow].compactMap { $0 } + Array(noteWindows.values)) where !visible.contains(where: { $0.intersects(window.frame) }) {
-            guard let frame = NSScreen.main?.visibleFrame else { continue }
-            let origin = NSPoint(x: min(max(frame.minX, window.frame.minX), frame.maxX - min(window.frame.width, frame.width)), y: min(max(frame.minY, window.frame.minY), frame.maxY - min(window.frame.height, frame.height)))
-            window.setFrameOrigin(origin)
+        for window in ([settingsWindow, switcherPanel, onboardingWindow].compactMap { $0 } + Array(noteWindows.values)) {
+            guard let frame = visible.max(by: { $0.intersection(window.frame).areaForPlacement < $1.intersection(window.frame).areaForPlacement }) else { continue }
+            window.setFrame(WindowPlacement.fit(window.frame, in: frame), display: true)
         }
     }
     func toggleDock(noteID: UUID) {
@@ -100,7 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         OverlayController.shared.configure(model: model)
         DragMoveController.shared.configure(model: model)
         screenObserver = NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { [weak self] _ in
-            Task { @MainActor in try? await Task.sleep(for: .milliseconds(500)); OverlayController.shared.hide(); WindowCoordinator.shared.restoreReachableWindows(); self?.model.refreshSpaces() }
+            Task { @MainActor in OverlayController.shared.hide(); WindowCoordinator.shared.restoreReachableWindows(); self?.model.displayConfigurationChanged() }
         }
         // Present first; initialize the updater only after DeskOrbit has an
         // operational menu item/window. A failed optional service must never
@@ -266,12 +265,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 enum NamespacesMain {
     @MainActor
     static func main() {
+        if CommandLine.arguments.contains("--mcp") {
+            LocalAgentSocket.runStdio()
+            return
+        }
         LaunchDiagnostics.record("process entered main")
         let application = NSApplication.shared
         let delegate = AppDelegate()
         application.delegate = delegate
         withExtendedLifetime(delegate) { application.run() }
     }
+}
+
+private extension CGRect {
+    var areaForPlacement: CGFloat { isNull ? 0 : width * height }
 }
 
 private enum LaunchDiagnostics {

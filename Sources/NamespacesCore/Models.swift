@@ -7,14 +7,17 @@ public struct NativeSpace: Codable, Hashable, Identifiable, Sendable {
     public var index: Int
     public var isActive: Bool
     public var kind: SpaceKind
+    /// WindowServer's UUID survives many changes to the numeric Space ID.
+    public var persistentID: String?
 
-    public init(id: UInt64, displayID: String, displayName: String, index: Int, isActive: Bool, kind: SpaceKind = .desktop) {
+    public init(id: UInt64, displayID: String, displayName: String, index: Int, isActive: Bool, kind: SpaceKind = .desktop, persistentID: String? = nil) {
         self.id = id
         self.displayID = displayID
         self.displayName = displayName
         self.index = index
         self.isActive = isActive
         self.kind = kind
+        self.persistentID = persistentID
     }
 }
 
@@ -26,6 +29,9 @@ public struct SpaceProfile: Codable, Hashable, Identifiable, Sendable {
     public var displayID: String
     public var lastKnownIndex: Int?
     public var lastKnownKind: SpaceKind?
+    public var persistentID: String?
+    /// Ambiguous legacy bindings are preserved for manual relinking, not guessed.
+    public var needsRelinking: Bool?
     public var name: String
     public var symbol: String
     public var colorHex: String
@@ -37,9 +43,10 @@ public struct SpaceProfile: Codable, Hashable, Identifiable, Sendable {
     public var createdAt: Date
     public var updatedAt: Date
 
-    public init(id: UUID = UUID(), nativeID: UInt64, displayID: String, lastKnownIndex: Int? = nil, lastKnownKind: SpaceKind? = nil, name: String, symbol: String = "square.grid.2x2", colorHex: String = "#7C5CFC", aliases: [String] = [], trackingEnabled: Bool = true, billable: Bool = false, hourlyRate: Double? = nil, shortcut: ShortcutSpec? = nil, createdAt: Date = .now, updatedAt: Date = .now) {
+    public init(id: UUID = UUID(), nativeID: UInt64, displayID: String, lastKnownIndex: Int? = nil, lastKnownKind: SpaceKind? = nil, persistentID: String? = nil, name: String, symbol: String = "square.grid.2x2", colorHex: String = "#7C5CFC", aliases: [String] = [], trackingEnabled: Bool = true, billable: Bool = false, hourlyRate: Double? = nil, shortcut: ShortcutSpec? = nil, createdAt: Date = .now, updatedAt: Date = .now) {
         self.id = id; self.nativeID = nativeID; self.displayID = displayID; self.name = name
         self.lastKnownIndex = lastKnownIndex; self.lastKnownKind = lastKnownKind
+        self.persistentID = persistentID
         self.symbol = symbol; self.colorHex = colorHex; self.aliases = aliases
         self.trackingEnabled = trackingEnabled; self.billable = billable; self.hourlyRate = hourlyRate
         self.shortcut = shortcut; self.createdAt = createdAt; self.updatedAt = updatedAt

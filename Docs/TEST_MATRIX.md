@@ -1,6 +1,7 @@
 # Compatibility and Release Test Matrix
 
-Last verified: 2026-09-02.
+Updated: 2026-10-27. The table below records the previous 0.2.9 baseline;
+0.3.0-specific evidence and outstanding gates follow.
 
 | Configuration | Build | Discovery | Switching | Overlay | Window move | Status |
 |---|---:|---:|---:|---:|---:|---|
@@ -27,3 +28,25 @@ and anchor selection; no guessed fallback;
 opening grace and first-scan close; native ordinal parsing;
 multiple-display candidate scoping; panel reuse; disabled preference; screen
 topology changes; and Accessibility revoked/restored while running.
+
+## 0.3.0 agent/monitor additions
+
+- Local macOS 15.7.4: 37 tests, universal packaging, packaged stdio protocol,
+  live preview/apply/persist/restore stress test (20 cycles), denied permission
+  checks, and optional app/Space context with titles omitted: pass.
+- macOS 15/26 CI: packaged stdio and live GUI bridge tests added; require green
+  runs for this revision before promotion.
+- Monitor topology: five external Spaces merging into the laptop, returning in
+  reverse order, numeric-ID churn, UUID matching and legacy duplicates covered
+  by fixtures. Physical unplug/replug still pending, not implied by fixture pass.
+- Display geometry: five visible sizes from 800×550 to 3840×2100, portrait-like
+  tall windows and negative monitor origins pass pure layout tests.
+- Native UI: initial Settings AX inspection passed; remaining Agents screenshot,
+  narrow-window, light/dark, keyboard/VoiceOver and Increase Contrast checks
+  blocked by native computer-use pipe failure. Resume these before public release.
+- Codex/Claude/Cursor: official setup documentation supplied; actual client
+  connection acceptance remains a manual check in those clients.
+- Titles: verify permission combinations with disposable fixture titles before
+  shipping; do not use private user document titles in QA logs.
+- Disable: verify new commands rejected after toggle-off; process stop/offline
+  rejection and non-persisted launch-only test permission overrides are checked.

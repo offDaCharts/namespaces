@@ -76,7 +76,7 @@ final class EnhancedSpaceProvider: SpaceProviding {
             for (index, record) in records.enumerated() {
                 guard let id = (record["ManagedSpaceID"] as? NSNumber)?.uint64Value else { continue }
                 let type = (record["type"] as? NSNumber)?.intValue ?? 0
-                output.append(NativeSpace(id: id, displayID: displayID, displayName: screenNames[displayID] ?? "Display \(displayOrdinal + 1)", index: index + 1, isActive: id == current, kind: type == 4 ? .fullscreen : .desktop))
+                output.append(NativeSpace(id: id, displayID: displayID, displayName: screenNames[displayID] ?? "Display \(displayOrdinal + 1)", index: index + 1, isActive: id == current, kind: type == 4 ? .fullscreen : .desktop, persistentID: record["uuid"] as? String))
             }
         }
         guard !output.isEmpty else { throw SpaceProviderError.malformedData }

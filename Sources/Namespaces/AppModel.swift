@@ -18,6 +18,11 @@ final class AppModel: ObservableObject {
     @Published var providerCircuitOpen = false
     @Published var hotkeyFailures: [String] = []
     @Published var missionControlOverlayStatus = "Initializing Mission Control integration…"
+    @Published var agentStatus = "Agent connection is off"
+    lazy var agentConnection = AgentConnection(model: self)
+    private var displayRefreshTask: Task<Void, Never>?
+    private var displayTransition = false
+    var topologyIsSettling: Bool { displayTransition }
 
     let store = DataStore()
     let license = LicenseController()
@@ -39,6 +44,13 @@ final class AppModel: ObservableObject {
     var activeNativeSpace: NativeSpace? { nativeSpaces.first(where: \.isActive) }
     var activeProfile: SpaceProfile? { guard let native = activeNativeSpace else { return nil }; return profile(for: native) }
     var currentName: String { activeProfile?.name ?? activeNativeSpace.map { "Desktop \($0.index)" } ?? "DeskOrbit" }
+    var previousProfile: SpaceProfile? {
+        let active = activeProfile?.id
+        for id in data.recentSpaceIDs where id != active {
+            if let profile = data.spaces.first(where: { $0.id == id }), native(for: profile) != nil { return profile }
+        }
+        return nil
+    }
     // Keep these as explicit closures rather than unapplied instance-method
     // references. Swift 6.0/6.1 can otherwise select a typed-throws overload of
     // compactMap even though profile(for:) is non-throwing.
@@ -61,7 +73,7 @@ final class AppModel: ObservableObject {
 
     private func bootstrap() async {
         do { data = try await store.load() } catch { lastError = "Could not load local data: \(error.localizedDescription)" }
-        selectProvider(); refreshSpaces(); registerTrackingTimer()
+        selectProvider(); refreshSpaces(); registerTrackingTimer(); agentConnection.configure()
     }
 
     func selectProvider() {
@@ -75,10 +87,12 @@ final class AppModel: ObservableObject {
     }
 
     func refreshSpaces() {
+        guard !displayTransition else { return }
         let interval = Metrics.signposter.beginInterval("Topology refresh")
         defer { Metrics.signposter.endInterval("Topology refresh", interval) }
         do {
             let discovered = try provider.spaces()
+            guard Set(discovered.map(\.id)).count == discovered.count else { throw SpaceProviderError.malformedData }
             nativeSpaces = discovered
             providerFailureCount = 0
             reconcile(discovered)
@@ -98,22 +112,25 @@ final class AppModel: ObservableObject {
 
     func retryEnhancedProvider() { selectProvider(); refreshSpaces() }
 
+    func displayConfigurationChanged() {
+        displayRefreshTask?.cancel()
+        closeOpenSegment(classification: .active)
+        displayTransition = true
+        displayRefreshTask = Task {
+            do {
+                try await Task.sleep(for: .milliseconds(800))
+                displayTransition = false
+                refreshSpaces()
+                // WindowServer may settle after the screen notification itself.
+                for _ in 0..<2 { try await Task.sleep(for: .seconds(2)); refreshSpaces() }
+            } catch { /* superseded by another display notification */ }
+        }
+    }
+
     private func reconcile(_ discovered: [NativeSpace]) {
-        var changed = false
-        for native in discovered {
-            if let index = data.spaces.firstIndex(where: { $0.nativeID == native.id && $0.displayID == native.displayID }) {
-                if data.spaces[index].lastKnownIndex != native.index || data.spaces[index].lastKnownKind != native.kind {
-                    data.spaces[index].lastKnownIndex = native.index; data.spaces[index].lastKnownKind = native.kind; changed = true
-                }
-            }
-        }
-        for native in discovered where profile(for: native) == nil {
-            // Never guess across native-ID churn. Keeping an old record unmatched is
-            // safer than attaching notes or tracked time to the wrong desktop.
-            data.spaces.append(SpaceProfile(nativeID: native.id, displayID: native.displayID, lastKnownIndex: native.index, lastKnownKind: native.kind, name: native.kind == .fullscreen ? "Fullscreen \(native.index)" : "Desktop \(native.index)"))
-            changed = true
-        }
-        if changed { scheduleSave() }
+        let before = data.spaces
+        SpaceIdentity.reconcile(discovered, profiles: &data.spaces)
+        if before != data.spaces { scheduleSave(); presentationRevision += 1; hotkeyRevision += 1 }
     }
 
     func linkUnmatchedProfile(_ profileID: UUID, to native: NativeSpace) {
@@ -123,12 +140,20 @@ final class AppModel: ObservableObject {
         data.spaces.removeAll { $0.id == generated.id }
         guard let newIndex = data.spaces.firstIndex(where: { $0.id == profileID }) else { return }
         data.spaces[newIndex].nativeID = native.id; data.spaces[newIndex].displayID = native.displayID; data.spaces[newIndex].lastKnownIndex = native.index; data.spaces[newIndex].lastKnownKind = native.kind; data.spaces[newIndex].updatedAt = .now
+        data.spaces[newIndex].persistentID = SpaceIdentity.normalized(native.persistentID)
+        data.spaces[newIndex].needsRelinking = nil
         scheduleSave(); objectWillChange.send(); presentationRevision += 1
         _ = oldIndex
     }
 
-    func profile(for native: NativeSpace) -> SpaceProfile? { data.spaces.first { $0.nativeID == native.id && $0.displayID == native.displayID } }
-    func native(for profile: SpaceProfile) -> NativeSpace? { nativeSpaces.first { $0.id == profile.nativeID && $0.displayID == profile.displayID } }
+    func profile(for native: NativeSpace) -> SpaceProfile? {
+        guard let id = SpaceIdentity.matches(nativeSpaces, profiles: data.spaces)[native.id] else { return nil }
+        return data.spaces.first { $0.id == id }
+    }
+    func native(for profile: SpaceProfile) -> NativeSpace? {
+        let mapping = SpaceIdentity.matches(nativeSpaces, profiles: data.spaces)
+        return nativeSpaces.first { mapping[$0.id] == profile.id }
+    }
 
     func updateProfile(_ profile: SpaceProfile) {
         guard let index = data.spaces.firstIndex(where: { $0.id == profile.id }) else { return }
@@ -147,7 +172,7 @@ final class AppModel: ObservableObject {
     }
 
     func jumpBack() {
-        guard let active = activeProfile?.id, let prior = data.recentSpaceIDs.first(where: { $0 != active }), let profile = data.spaces.first(where: { $0.id == prior }) else { lastError = "There is no previous available Space yet."; return }
+        guard let profile = previousProfile else { lastError = "There is no previous available Space yet."; return }
         switchTo(profile)
     }
 
@@ -241,6 +266,7 @@ final class AppModel: ObservableObject {
         let shortcutsChanged = data.preferences.quickSwitcherShortcut != preferences.quickSwitcherShortcut || data.preferences.jumpBackShortcut != preferences.jumpBackShortcut || data.preferences.globalShortcutsEnabled != preferences.globalShortcutsEnabled
         data.preferences = preferences; scheduleSave(); objectWillChange.send(); presentationRevision += 1
         if shortcutsChanged { hotkeyRevision += 1 }
+        agentConnection.configure()
         if preferences.launchAtLogin != (SMAppService.mainApp.status == .enabled) {
             do { if preferences.launchAtLogin { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() } } catch { lastError = "Launch at login could not be changed: \(error.localizedDescription)" }
         }
@@ -252,6 +278,7 @@ final class AppModel: ObservableObject {
     }
 
     func trackingTick(forceBoundary: Bool) {
+        guard !displayTransition else { return }
         guard data.preferences.trackingEnabled, !data.preferences.trackingPaused, let profile = activeProfile, profile.trackingEnabled else { closeOpenSegment(classification: .active); return }
         let activityTypes: [CGEventType] = [.mouseMoved, .leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel, .keyDown]
         let idleSeconds = activityTypes.map { CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: $0) }.min() ?? 0
@@ -333,5 +360,9 @@ final class AppModel: ObservableObject {
     func scheduleSave() {
         saveTask?.cancel(); let snapshot = data
         saveTask = Task { try? await Task.sleep(for: .milliseconds(250)); if !Task.isCancelled { try? await store.save(snapshot) } }
+    }
+    func saveImmediately() async throws {
+        saveTask?.cancel()
+        try await store.save(data)
     }
 }

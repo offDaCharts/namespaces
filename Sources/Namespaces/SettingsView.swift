@@ -3,10 +3,10 @@ import NamespacesCore
 import SwiftUI
 
 private enum SettingsSection: String, CaseIterable, Identifiable {
-    case spaces = "Spaces", shortcuts = "Shortcuts", notes = "Notes", automations = "Automations", tracking = "Time Tracking", permissions = "Capabilities", data = "Data & Backup", general = "General", license = "License", about = "About"
+    case spaces = "Spaces", agents = "Agents", shortcuts = "Shortcuts", notes = "Notes", automations = "Automations", tracking = "Time Tracking", permissions = "Capabilities", data = "Data & Backup", general = "General", license = "License", about = "About"
     var id: String { rawValue }
     var icon: String { switch self {
-    case .spaces: "square.grid.2x2"; case .shortcuts: "keyboard"; case .notes: "note.text"; case .automations: "play.square.stack"; case .tracking: "clock"; case .permissions: "checkmark.shield"; case .data: "externaldrive"; case .general: "gearshape"; case .license: "key"; case .about: "info.circle"
+    case .spaces: "square.grid.2x2"; case .agents: "sparkles"; case .shortcuts: "keyboard"; case .notes: "note.text"; case .automations: "play.square.stack"; case .tracking: "clock"; case .permissions: "checkmark.shield"; case .data: "externaldrive"; case .general: "gearshape"; case .license: "key"; case .about: "info.circle"
     } }
 }
 
@@ -25,6 +25,7 @@ struct SettingsView: View {
         } detail: {
             Group { switch selection ?? .spaces {
             case .spaces: SpacesSettingsView()
+            case .agents: AgentSettingsView()
             case .shortcuts: ShortcutsSettingsView()
             case .notes: NotesSettingsView()
             case .automations: AutomationsSettingsView()
@@ -38,7 +39,7 @@ struct SettingsView: View {
         }
         .alert("DeskOrbit", isPresented: Binding(get: { model.lastError != nil }, set: { if !$0 { model.lastError = nil } })) { Button("OK") { model.lastError = nil } } message: { Text(model.lastError ?? "") }
     }
-    private func keywords(_ section: SettingsSection) -> String { switch section { case .spaces: "names icons colors aliases billable"; case .shortcuts: "hotkeys keyboard jump back"; case .notes: "checklist markdown dock"; case .automations: "scripts apps files shortcuts routines"; case .tracking: "time idle sessions CSV billing history"; case .permissions: "accessibility provider WindowServer experimental"; case .data: "backup restore diagnostics reset privacy"; case .general: "login hover labels appearance offline"; case .license: "trial buy purchase activate key lemon"; case .about: "version data location help" } }
+    private func keywords(_ section: SettingsSection) -> String { switch section { case .spaces: "names icons colors aliases billable"; case .agents: "MCP Claude Codex Cursor AI connection window context"; case .shortcuts: "hotkeys keyboard jump back"; case .notes: "checklist markdown dock"; case .automations: "scripts apps files shortcuts routines"; case .tracking: "time idle sessions CSV billing history"; case .permissions: "accessibility provider WindowServer experimental"; case .data: "backup restore diagnostics reset privacy"; case .general: "login hover labels appearance offline"; case .license: "trial buy purchase activate key lemon"; case .about: "version data location help" } }
 }
 
 private struct ShortcutsSettingsView: View {
@@ -81,8 +82,8 @@ private struct SpacesSettingsView: View {
         }.font(.callout)
         LazyVStack(spacing: 1) {
             ForEach(model.nativeSpaces) { native in
-                if let profile = model.profile(for: native), let index = model.data.spaces.firstIndex(where: { $0.id == profile.id }) {
-                    SpaceProfileEditor(profile: Binding(get: { model.data.spaces[index] }, set: { model.updateProfile($0) }), native: native)
+                if let profile = model.profile(for: native) {
+                    SpaceProfileEditor(profile: Binding(get: { model.data.spaces.first(where: { $0.id == profile.id }) ?? profile }, set: { model.updateProfile($0) }), native: native)
                     if native.id != model.nativeSpaces.last?.id { Divider().padding(.leading, 50) }
                 }
             }
@@ -150,10 +151,10 @@ private struct SpaceProfileEditor: View {
                 }.buttonStyle(.plain).foregroundStyle(.secondary).help(showsDetails ? "Hide options" : "Show options")
             }
             if showsDetails {
-                HStack(spacing: 12) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), alignment: .leading)], alignment: .leading, spacing: 12) {
                     Picker("Icon", selection: $profile.symbol) {
                         ForEach(symbols, id: \.1) { name, symbol in Label(name, systemImage: symbol).tag(symbol) }
-                    }.frame(width: 145)
+                    }.frame(maxWidth: .infinity, alignment: .leading)
                     Picker("Color", selection: $profile.colorHex) {
                         ForEach(colorOptions) { option in
                             Label {
@@ -164,13 +165,12 @@ private struct SpaceProfileEditor: View {
                             .labelStyle(.titleAndIcon)
                             .tag(option.hex)
                         }
-                    }.frame(width: 190)
+                    }.frame(maxWidth: .infinity, alignment: .leading)
                     Toggle("Track time", isOn: $profile.trackingEnabled)
                     Toggle("Billable", isOn: $profile.billable)
                     Picker("Shortcut", selection: $profile.shortcut) {
                         ForEach(shortcutOptions, id: \.0) { option in Text(option.0).tag(option.1) }
-                    }.frame(width: 125)
-                    Spacer(minLength: 0)
+                    }.frame(maxWidth: .infinity, alignment: .leading)
                 }.controlSize(.small)
                 TextField("Search aliases, separated by commas", text: Binding(get: { profile.aliases.joined(separator: ", ") }, set: { profile.aliases = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty } }))
                     .textFieldStyle(.roundedBorder).controlSize(.small).padding(.leading, 44)

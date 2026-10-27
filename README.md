@@ -7,6 +7,10 @@ switching, and augmenting native macOS Spaces.
 
 - Discovers native Spaces and displays through an isolated enhanced provider.
 - Assigns persistent names, SF Symbols, colors, tracking, and billing metadata.
+- Connects local Codex, Claude, Cursor and other stdio MCP clients to name and
+  color existing Spaces in batches, with preview and optional app context.
+- Follows native Space UUIDs across monitor moves and ID changes; preserves
+  uncertain profiles for explicit relinking instead of guessing by position.
 - Shows the active Space in the menu bar and provides direct switching.
 - Provides a searchable `⌥Space` Quick Switcher and `⌥⇧Space` Jump Back.
 - Stores per-Space text notes and checklists locally.
@@ -28,6 +32,14 @@ switching, and augmenting native macOS Spaces.
 - Xcode 16 or newer (tested with Xcode 26.2 / Swift 6.2.3)
 - Accessibility permission for thumbnail-aligned Mission Control labels and
   window-focused features
+
+## Agent setup
+
+Open **Settings → Agents**, enable the local connection, select your client and
+copy setup once. Then ask your agent to name and style your existing desktops.
+Window context and titles are separately opt-in. See
+[the connection guide](Docs/AGENT_CONNECTION.md) for commands, privacy, examples
+and monitor-continuity limits. No extra runtime needs to be installed.
 
 ## Build and run
 
