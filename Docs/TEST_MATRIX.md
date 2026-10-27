@@ -35,7 +35,9 @@ topology changes; and Accessibility revoked/restored while running.
   live preview/apply/persist/restore stress test (20 cycles), denied permission
   checks, and optional app/Space context with titles omitted: pass.
 - macOS 15/26 CI: packaged stdio and live GUI bridge tests added; require green
-  runs for this revision before promotion.
+  runs for this revision before promotion. Hosted runners expose no native
+  Spaces, so their live test verifies explicit unavailable-discovery fallback,
+  denied permissions and rejected mutation. It does not claim desktop editing.
 - Monitor topology: five external Spaces merging into the laptop, returning in
   reverse order, numeric-ID churn, UUID matching and legacy duplicates covered
   by fixtures. Physical unplug/replug still pending, not implied by fixture pass.
