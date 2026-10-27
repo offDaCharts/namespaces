@@ -15,8 +15,8 @@ jobs:
         run: ./Scripts/build-app.sh release
       - name: Verify packaged MCP protocol
         run: python3 Scripts/test-mcp.py build/DeskOrbit.app/Contents/MacOS/DeskOrbit
-      - name: Verify live MCP and explicit headless fallback
-        run: python3 Scripts/test-mcp.py build/DeskOrbit.app/Contents/MacOS/DeskOrbit --launch-app --apply-round-trip --allow-headless-fallback
+      - name: Verify live MCP preview, apply and persistence
+        run: python3 Scripts/test-mcp.py build/DeskOrbit.app/Contents/MacOS/DeskOrbit --launch-app --apply-round-trip
       - name: Archive self-contained app
         run: ditto -c -k --sequesterRsrc --keepParent build/DeskOrbit.app build/DeskOrbit-macos-universal.zip
       - uses: actions/upload-artifact@v4
@@ -39,7 +39,7 @@ jobs:
       - name: Verify MCP protocol on Tahoe
         run: python3 Scripts/test-mcp.py build/DeskOrbit.app/Contents/MacOS/DeskOrbit
       - name: Verify live MCP on Tahoe
-        run: python3 Scripts/test-mcp.py build/DeskOrbit.app/Contents/MacOS/DeskOrbit --launch-app --apply-round-trip --allow-headless-fallback
+        run: python3 Scripts/test-mcp.py build/DeskOrbit.app/Contents/MacOS/DeskOrbit --launch-app --apply-round-trip
       - name: Verify Tahoe launch reaches visible-UI startup
         run: |
           rm -f "$HOME/Library/Logs/DeskOrbit/launch.log"

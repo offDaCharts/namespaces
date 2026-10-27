@@ -9,7 +9,6 @@ import argparse
 import json
 import selectors
 import subprocess
-import sys
 import time
 import uuid
 
@@ -19,7 +18,6 @@ parser.add_argument("--live", action="store_true")
 parser.add_argument("--apply-round-trip", action="store_true")
 parser.add_argument("--check-context", action="store_true", help="Verify opt-in app context locally; print no window/app content")
 parser.add_argument("--launch-app", action="store_true", help="Launch a temporary test GUI; requires no other DeskOrbit copy running")
-parser.add_argument("--allow-headless-fallback", action="store_true", help="CI only: if native discovery is unavailable, require safe read-only fallback and rejected mutations")
 parser.add_argument("--restore-styling-from", help="Recovery only: restore available profile styling from a local JSON backup")
 args = parser.parse_args()
 gui = None
@@ -51,8 +49,15 @@ def rpc(method, params=None, notification=False):
 
 
 def tool(name, arguments=None, expect_error=False):
-    response = rpc("tools/call", {"name": name, "arguments": arguments or {}})
-    result = response["result"]
+    for attempt in range(40):
+        response = rpc("tools/call", {"name": name, "arguments": arguments or {}})
+        result = response["result"]
+        # This guard runs before mutations. Treat it exactly as the MCP client
+        # is instructed to: wait for WindowServer to settle, then retry.
+        if result["isError"] and result["content"][0]["text"].startswith("Displays are reconnecting."):
+            time.sleep(0.25)
+            continue
+        break
     assert result["isError"] == expect_error, f"Unexpected tool status: {name}: " + (result["content"][0]["text"] if result["isError"] else "expected rejection")
     return result if expect_error else json.loads(result["content"][0]["text"])
 
@@ -97,19 +102,14 @@ try:
             print("PASS: opt-in app/Space context, titles omitted (content not logged)")
         if not status["window_titles_enabled"]:
             tool("deskorbit_window_context", {"include_titles": True}, expect_error=True)
-        before = tool("deskorbit_list_spaces")["spaces"]
-        available = [s for s in before if s["available"]][:2]
-        if not available and args.allow_headless_fallback:
-            assert not status["can_discover_spaces"], "Discovery claims availability but returned no Spaces"
-            unknown = str(uuid.uuid4())
-            tool("deskorbit_configure_spaces", {"spaces": [{"space_id": unknown, "name": "Must not apply"}], "apply": True}, expect_error=True)
-            tool("deskorbit_switch_space", {"space_id": unknown}, expect_error=True)
-            assert tool("deskorbit_list_spaces")["spaces"] == before
-            assert len(tool("deskorbit_palette")["colors"]) == 8
-            print("PASS: live GUI IPC, permission denial, headless fallback, unavailable mutations rejected")
-            print("PASS: packaged MCP initialization, discovery, notifications, validation, ping")
-            print("NOT EXERCISED: real-desktop preview/apply/restore; this runner exposes no native Spaces")
-            sys.exit(0)
+        for attempt in range(40):
+            topology = tool("deskorbit_list_spaces")
+            before = topology["spaces"]
+            available = [s for s in before if s["available"]][:2]
+            if available and not topology["topology_settling"]:
+                break
+            time.sleep(0.25)
+        assert not topology["topology_settling"], "Display topology did not settle"
         assert available, "No available Spaces for preview test"
         edits = [{"space_id": s["space_id"], "name": "MCP verification " + str(i)} for i, s in enumerate(available)]
         preview = tool("deskorbit_configure_spaces", {"spaces": edits})

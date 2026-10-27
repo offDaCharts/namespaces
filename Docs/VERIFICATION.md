@@ -30,11 +30,11 @@ Local environment: macOS 15.7.4, Apple Silicon, Xcode 26.2 / Swift 6.2.3.
   deterministic geometry checks, not screenshots or physical monitor tests.
 - CI now includes live packaged MCP tests on macOS 15 and macOS 26; record run
   results before promotion. No vendor agent-client live certification is claimed.
-- Initial CI run 40533836117 built both versions and passed stdio checks, but
-  neither hosted runner exposed native Spaces. The harness now explicitly tests
-  unavailable discovery, permission denial and mutation rejection in that
-  environment; it prints that desktop editing was NOT EXERCISED. Full live
-  preview/apply/persist/restore evidence comes from the local desktop runs.
+- Initial CI runs 40533836117 and 40534540730 built both versions and passed
+  stdio checks, but rapid test calls raced initial WindowServer discovery and
+  display-settling notifications. The harness now waits for available, settled
+  topology and retries only explicit pre-mutation reconnection errors. Real
+  desktop preview/apply/persist/restore remains required; there is no skip.
 
 Public release blockers: Developer ID Application certificate/private key and
 notarization credentials are absent locally and in GitHub. Only Apple Development
