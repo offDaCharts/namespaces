@@ -220,7 +220,7 @@ enum MissionControlLabelLocator {
 
         let candidates = AXIsProcessTrusted() ? accessibilityCandidates() : []
         var claimedCandidates = Set<Int>()
-        var resolved: [MissionControlLabelTarget] = []
+        var anchors: [(profile: SpaceProfile, anchor: CGRect, screen: NSScreen)] = []
 
         for (native, profile) in pairs {
             let screen = screen(for: native) ?? NSScreen.main
@@ -233,18 +233,14 @@ enum MissionControlLabelLocator {
 
             if let match {
                 claimedCandidates.insert(match.offset)
-                resolved.append(MissionControlLabelTarget(
-                    profile: profile,
-                    frame: badgeFrame(for: match.element.cocoaFrame, name: profile.name, screen: screen),
-                    source: .accessibility
-                ))
+                anchors.append((profile, match.element.cocoaFrame, screen))
             }
         }
 
         // Full-screen app records can create gaps in WindowServer's managed
         // indices even though Mission Control numbers only desktop controls.
         // Resolve any remaining items positionally within their display.
-        var resolvedIDs = Set(resolved.map(\.profile.id))
+        var resolvedIDs = Set(anchors.map(\.profile.id))
         for screen in NSScreen.screens {
             guard spaceBarIsExpanded(on: screen, candidates: candidates) else { continue }
             let remainingPairs = pairs
@@ -256,12 +252,19 @@ enum MissionControlLabelLocator {
             for (pair, candidate) in zip(remainingPairs, remainingCandidates) {
                 claimedCandidates.insert(candidate.offset)
                 resolvedIDs.insert(pair.1.id)
-                resolved.append(MissionControlLabelTarget(
-                    profile: pair.1,
-                    frame: badgeFrame(for: candidate.element.cocoaFrame, name: pair.1.name, screen: screen),
-                    source: .accessibility
-                ))
+                anchors.append((pair.1, candidate.element.cocoaFrame, screen))
             }
+        }
+
+        // Size each badge against the other anchors on its own display so long
+        // names cannot cover a neighbouring thumbnail's label.
+        let resolved = anchors.map { item in
+            let neighbors = anchors.filter { $0.screen == item.screen }.map(\.anchor)
+            return MissionControlLabelTarget(
+                profile: item.profile,
+                frame: badgeFrame(for: item.anchor, name: item.profile.name, screen: item.screen, neighbors: neighbors),
+                source: .accessibility
+            )
         }
 
         // v0.1.0's good spacing comes from these native AX anchors. Never
@@ -338,9 +341,8 @@ enum MissionControlLabelLocator {
         return CGRect(x: frame.minX, y: mainHeight - frame.maxY, width: frame.width, height: frame.height)
     }
 
-    private static func badgeFrame(for anchor: CGRect, name: String, screen: NSScreen?) -> CGRect {
-        let desiredWidth = min(190, max(54, CGFloat(name.count) * 6.4 + 18))
-        let width = anchor.height > 50 ? min(desiredWidth, max(54, anchor.width - 12)) : desiredWidth
+    private static func badgeFrame(for anchor: CGRect, name: String, screen: NSScreen?, neighbors: [CGRect]) -> CGRect {
+        let width = MissionControlLayout.badgeWidth(nameLength: name.count, anchor: anchor, neighbors: neighbors)
         let height: CGFloat = 22
         var x = anchor.midX - width / 2
         // Compact anchors are Apple's Desktop labels below the previews, so
@@ -358,8 +360,7 @@ enum MissionControlLabelLocator {
     }
 
     private static func belongs(_ native: NativeSpace, to screen: NSScreen) -> Bool {
-        if NSScreen.screens.count == 1 { return true }
-        return native.displayName == screen.localizedName
+        screen.hosts(native)
     }
 
     private static func distanceFromTop(_ frame: CGRect, screen: NSScreen?) -> CGFloat {
@@ -381,6 +382,26 @@ enum MissionControlLabelLocator {
         let pointer = NSEvent.mouseLocation
         let pointerIsAtTop = screen.frame.contains(pointer) && screen.frame.maxY - pointer.y <= 220
         return hasExpandedControl || pointerIsAtTop
+    }
+}
+
+extension NSScreen {
+    /// The CoreGraphics display UUID, which is what WindowServer reports as a
+    /// Space's "Display Identifier".
+    var displayUUID: String? {
+        guard let number = deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber,
+              let uuid = CGDisplayCreateUUIDFromDisplayID(CGDirectDisplayID(number.uint32Value))?.takeRetainedValue()
+        else { return nil }
+        return CFUUIDCreateString(nil, uuid) as String
+    }
+
+    @MainActor
+    func hosts(_ native: NativeSpace) -> Bool {
+        DisplayMatching.belongs(
+            spaceDisplayID: native.displayID, spaceDisplayName: native.displayName,
+            screenUUID: displayUUID, screenName: localizedName,
+            isPrimaryScreen: self == NSScreen.screens.first, screenCount: NSScreen.screens.count
+        )
     }
 }
 

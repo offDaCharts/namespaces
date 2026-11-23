@@ -95,16 +95,22 @@ final class LicenseController: ObservableObject {
             fields["instance_id"] = instanceID
         }
 
+        let outcome: LicenseCheckOutcome
         do {
-            let response: ValidateResponse = try await post(path: "validate", fields: fields)
-            if response.valid {
-                state = .licensed
-                lastError = nil
-            } else {
-                state = .expired
-                lastError = response.error ?? "This license is no longer valid."
-            }
+            let (status, data) = try await send(path: "validate", fields: fields)
+            let body = try? JSONDecoder().decode(ValidateResponse.self, from: data)
+            outcome = LicenseCheckOutcome.from(httpStatus: status, valid: body?.valid, message: body?.error)
         } catch {
+            outcome = .unreachable
+        }
+        switch outcome {
+        case .valid:
+            state = .licensed
+            lastError = nil
+        case .rejected(let message):
+            state = .expired
+            lastError = message
+        case .unreachable:
             // A previously activated copy remains usable offline. Validation will
             // retry on the next launch or when the user opens License settings.
             state = .licensed
@@ -156,6 +162,17 @@ final class LicenseController: ObservableObject {
     }
 
     private func post<Response: Decodable>(path: String, fields: [String: String]) async throws -> Response {
+        let (status, data) = try await send(path: path, fields: fields)
+        guard (200..<300).contains(status) else {
+            if let failure = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                throw LicenseError.server(failure.error)
+            }
+            throw LicenseError.server("The license server returned HTTP \(status).")
+        }
+        return try JSONDecoder().decode(Response.self, from: data)
+    }
+
+    private func send(path: String, fields: [String: String]) async throws -> (Int, Data) {
         var request = URLRequest(url: URL(string: "https://api.lemonsqueezy.com/v1/licenses/\(path)")!)
         request.httpMethod = "POST"
         request.timeoutInterval = 15
@@ -167,13 +184,7 @@ final class LicenseController: ObservableObject {
 
         let (data, urlResponse) = try await URLSession.shared.data(for: request)
         guard let response = urlResponse as? HTTPURLResponse else { throw LicenseError.invalidResponse }
-        guard (200..<300).contains(response.statusCode) else {
-            if let failure = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
-                throw LicenseError.server(failure.error)
-            }
-            throw LicenseError.server("The license server returned HTTP \(response.statusCode).")
-        }
-        return try JSONDecoder().decode(Response.self, from: data)
+        return (response.statusCode, data)
     }
 
     private var instanceName: String {

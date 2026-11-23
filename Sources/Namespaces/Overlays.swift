@@ -58,7 +58,7 @@ final class OverlayController {
         hidePreview()
         for screen in NSScreen.screens {
             let profiles = model.nativeSpaces
-                .filter { $0.displayName == screen.localizedName || NSScreen.screens.count == 1 }
+                .filter { screen.hosts($0) }
                 .compactMap { native in model.profile(for: native) }
             guard !profiles.isEmpty else { continue }
             let view = SpaceStripView(profiles: profiles, activeID: model.activeProfile?.id) { [weak model] profile in model?.switchTo(profile) }
