@@ -232,3 +232,41 @@ final class LicenseOutcomeTests: XCTestCase {
         XCTAssertEqual(LicenseCheckOutcome.from(httpStatus: 403, valid: nil, message: nil), .unreachable)
     }
 }
+
+final class GumroadLicenseTests: XCTestCase {
+    private func json(_ s: String) -> Data { Data(s.utf8) }
+
+    func testValidSaleActivatesAndRechecks() {
+        let ok = json(#"{"success":true,"uses":1,"purchase":{"refunded":false,"disputed":false,"chargebacked":false,"email":"a@b.c"}}"#)
+        XCTAssertEqual(GumroadLicense.outcome(httpStatus: 200, data: ok, incremented: true), .valid)
+        XCTAssertEqual(GumroadLicense.outcome(httpStatus: 200, data: ok, incremented: false), .valid)
+    }
+
+    func testRefundsDisputesAndUnknownKeysAreRejected() {
+        let refunded = json(#"{"success":true,"uses":2,"purchase":{"refunded":true}}"#)
+        guard case .rejected = GumroadLicense.outcome(httpStatus: 200, data: refunded, incremented: false) else { return XCTFail() }
+        let disputed = json(#"{"success":true,"uses":2,"purchase":{"refunded":false,"chargebacked":true}}"#)
+        guard case .rejected = GumroadLicense.outcome(httpStatus: 200, data: disputed, incremented: false) else { return XCTFail() }
+        let unknown = json(#"{"success":false,"message":"That license does not exist for the provided product."}"#)
+        XCTAssertEqual(GumroadLicense.outcome(httpStatus: 404, data: unknown, incremented: true), .rejected("That license does not exist for the provided product."))
+    }
+
+    func testActivationLimitAppliesOnlyWhenCounting() {
+        let many = json(#"{"success":true,"uses":6,"purchase":{"refunded":false}}"#)
+        guard case .rejected = GumroadLicense.outcome(httpStatus: 200, data: many, incremented: true) else { return XCTFail() }
+        // An already-activated Mac re-checking must not lose access because others activated later.
+        XCTAssertEqual(GumroadLicense.outcome(httpStatus: 200, data: many, incremented: false), .valid)
+    }
+
+    func testOutagesAreNotRejections() {
+        XCTAssertEqual(GumroadLicense.outcome(httpStatus: nil, data: nil, incremented: false), .unreachable)
+        XCTAssertEqual(GumroadLicense.outcome(httpStatus: 502, data: json("<html>"), incremented: false), .unreachable)
+        XCTAssertEqual(GumroadLicense.outcome(httpStatus: 200, data: json("<html>captive portal</html>"), incremented: false), .unreachable)
+    }
+
+    func testRequestBodyEscapesPlusAndAmpersand() {
+        let body = String(decoding: GumroadLicense.requestBody(productID: "abc==", licenseKey: "K+1&2", incrementUses: false), as: UTF8.self)
+        XCTAssertTrue(body.contains("license_key=K%2B1%262"), body)
+        XCTAssertTrue(body.contains("increment_uses_count=false"))
+    }
+}

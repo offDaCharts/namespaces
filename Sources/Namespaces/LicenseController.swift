@@ -21,8 +21,6 @@ final class LicenseController: ObservableObject {
 
     private let defaults = UserDefaults.standard
     private let firstLaunchKey = "DeskOrbit.firstLaunchDate"
-    private let instanceIDKey = "DeskOrbit.licenseInstanceID"
-    private let installationIDKey = "DeskOrbit.installationID"
     private let service = "com.kauibungalow.deskorbit.license"
     private let account = "license-key"
     private var licenseKey: String?
@@ -54,10 +52,22 @@ final class LicenseController: ObservableObject {
         return "••••-••••-\(licenseKey.suffix(4))"
     }
 
+    /// The Gumroad product this build sells. Set `DeskOrbitGumroadProductID`
+    /// in Info.plist (Gumroad → product → Content → License key → product ID).
+    private var productID: String? {
+        let value = (Bundle.main.object(forInfoDictionaryKey: "DeskOrbitGumroadProductID") as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return value?.isEmpty == false ? value : nil
+    }
+
     func activate(_ rawKey: String) async -> Bool {
         let key = rawKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else {
             lastError = "Enter the license key from your purchase email."
+            return false
+        }
+        guard let productID else {
+            lastError = "This build of DeskOrbit is not connected to a store yet."
             return false
         }
 
@@ -65,21 +75,22 @@ final class LicenseController: ObservableObject {
         lastError = nil
         defer { isWorking = false }
 
-        do {
-            let response: ActivateResponse = try await post(
-                path: "activate",
-                fields: ["license_key": key, "instance_name": instanceName]
-            )
-            guard response.activated, let instance = response.instance else {
-                throw LicenseError.server(response.error ?? "The license could not be activated.")
+        switch await verify(productID: productID, key: key, incrementUses: true) {
+        case .valid:
+            do {
+                try Self.writeKeychain(key, service: service, account: account)
+            } catch {
+                lastError = error.localizedDescription
+                return false
             }
-            try Self.writeKeychain(key, service: service, account: account)
-            defaults.set(instance.id, forKey: instanceIDKey)
             licenseKey = key
             state = .licensed
             return true
-        } catch {
-            lastError = error.localizedDescription
+        case .rejected(let message):
+            lastError = message
+            return false
+        case .unreachable:
+            lastError = "The license server could not be reached. Check your connection and try again."
             return false
         }
     }
@@ -89,21 +100,12 @@ final class LicenseController: ObservableObject {
             refreshLocalState()
             return
         }
-
-        var fields = ["license_key": key]
-        if let instanceID = defaults.string(forKey: instanceIDKey) {
-            fields["instance_id"] = instanceID
+        guard let productID else {
+            // Keys activated by an earlier build stay usable.
+            state = .licensed
+            return
         }
-
-        let outcome: LicenseCheckOutcome
-        do {
-            let (status, data) = try await send(path: "validate", fields: fields)
-            let body = try? JSONDecoder().decode(ValidateResponse.self, from: data)
-            outcome = LicenseCheckOutcome.from(httpStatus: status, valid: body?.valid, message: body?.error)
-        } catch {
-            outcome = .unreachable
-        }
-        switch outcome {
+        switch await verify(productID: productID, key: key, incrementUses: false) {
         case .valid:
             state = .licensed
             lastError = nil
@@ -118,30 +120,11 @@ final class LicenseController: ObservableObject {
         }
     }
 
+    /// Gumroad cannot release an activation without the seller token, so this
+    /// only forgets the key on this Mac. The License page says so.
     func deactivate() async -> Bool {
-        guard let key = licenseKey, let instanceID = defaults.string(forKey: instanceIDKey) else {
-            clearLicense()
-            return true
-        }
-
-        isWorking = true
-        lastError = nil
-        defer { isWorking = false }
-
-        do {
-            let response: DeactivateResponse = try await post(
-                path: "deactivate",
-                fields: ["license_key": key, "instance_id": instanceID]
-            )
-            guard response.deactivated else {
-                throw LicenseError.server(response.error ?? "The activation could not be released.")
-            }
-            clearLicense()
-            return true
-        } catch {
-            lastError = error.localizedDescription
-            return false
-        }
+        clearLicense()
+        return true
     }
 
     private func refreshLocalState() {
@@ -156,47 +139,24 @@ final class LicenseController: ObservableObject {
 
     private func clearLicense() {
         Self.deleteKeychain(service: service, account: account)
-        defaults.removeObject(forKey: instanceIDKey)
+        defaults.removeObject(forKey: "DeskOrbit.licenseInstanceID")
         licenseKey = nil
         refreshLocalState()
     }
 
-    private func post<Response: Decodable>(path: String, fields: [String: String]) async throws -> Response {
-        let (status, data) = try await send(path: path, fields: fields)
-        guard (200..<300).contains(status) else {
-            if let failure = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
-                throw LicenseError.server(failure.error)
-            }
-            throw LicenseError.server("The license server returned HTTP \(status).")
-        }
-        return try JSONDecoder().decode(Response.self, from: data)
-    }
-
-    private func send(path: String, fields: [String: String]) async throws -> (Int, Data) {
-        var request = URLRequest(url: URL(string: "https://api.lemonsqueezy.com/v1/licenses/\(path)")!)
+    private func verify(productID: String, key: String, incrementUses: Bool) async -> LicenseCheckOutcome {
+        var request = URLRequest(url: GumroadLicense.verifyURL)
         request.httpMethod = "POST"
         request.timeoutInterval = 15
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
-        var components = URLComponents()
-        components.queryItems = fields.sorted(by: { $0.key < $1.key }).map(URLQueryItem.init)
-        request.httpBody = components.percentEncodedQuery?.data(using: .utf8)
-
-        let (data, urlResponse) = try await URLSession.shared.data(for: request)
-        guard let response = urlResponse as? HTTPURLResponse else { throw LicenseError.invalidResponse }
-        return (response.statusCode, data)
-    }
-
-    private var instanceName: String {
-        let computer = Host.current().localizedName ?? "Mac"
-        let installationID: String
-        if let existing = defaults.string(forKey: installationIDKey) {
-            installationID = existing
-        } else {
-            installationID = UUID().uuidString
-            defaults.set(installationID, forKey: installationIDKey)
+        request.httpBody = GumroadLicense.requestBody(productID: productID, licenseKey: key, incrementUses: incrementUses)
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            return GumroadLicense.outcome(httpStatus: (response as? HTTPURLResponse)?.statusCode, data: data, incremented: incrementUses)
+        } catch {
+            return .unreachable
         }
-        return "\(computer) · DeskOrbit · \(installationID.prefix(8))"
     }
 
     private static func readKeychain(service: String, account: String) -> String? {
@@ -235,34 +195,11 @@ final class LicenseController: ObservableObject {
     }
 }
 
-private struct ActivateResponse: Decodable {
-    let activated: Bool
-    let error: String?
-    let instance: LicenseInstance?
-}
-
-private struct ValidateResponse: Decodable {
-    let valid: Bool
-    let error: String?
-}
-
-private struct DeactivateResponse: Decodable {
-    let deactivated: Bool
-    let error: String?
-}
-
-private struct ErrorResponse: Decodable { let error: String }
-private struct LicenseInstance: Decodable { let id: String }
-
 private enum LicenseError: LocalizedError {
-    case invalidResponse
-    case server(String)
     case keychain(OSStatus)
 
     var errorDescription: String? {
         switch self {
-        case .invalidResponse: "The license server returned an invalid response."
-        case .server(let message): message
         case .keychain(let status): "The license could not be saved securely (Keychain error \(status))."
         }
     }

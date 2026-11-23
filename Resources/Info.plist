@@ -21,6 +21,9 @@
             <key>CFBundleURLSchemes</key><array><string>deskorbit</string><string>namespaces</string></array>
         </dict>
     </array>
+    <!-- Gumroad product ID for license verification. Empty = activation shows
+         "not connected to a store yet"; fill in before a selling release. -->
+    <key>DeskOrbitGumroadProductID</key><string></string>
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>

@@ -39,7 +39,7 @@ struct SettingsView: View {
         }
         .alert("DeskOrbit", isPresented: Binding(get: { model.lastError != nil }, set: { if !$0 { model.lastError = nil } })) { Button("OK") { model.lastError = nil } } message: { Text(model.lastError ?? "") }
     }
-    private func keywords(_ section: SettingsSection) -> String { switch section { case .spaces: "names icons colors aliases billable"; case .agents: "MCP Claude Codex Cursor AI connection window context"; case .shortcuts: "hotkeys keyboard jump back"; case .notes: "checklist markdown dock"; case .automations: "scripts apps files shortcuts routines"; case .tracking: "time idle sessions CSV billing history"; case .permissions: "accessibility provider WindowServer experimental"; case .data: "backup restore diagnostics reset privacy"; case .general: "login hover labels appearance offline"; case .license: "trial buy purchase activate key lemon"; case .about: "version data location help" } }
+    private func keywords(_ section: SettingsSection) -> String { switch section { case .spaces: "names icons colors aliases billable"; case .agents: "MCP Claude Codex Cursor AI connection window context"; case .shortcuts: "hotkeys keyboard jump back"; case .notes: "checklist markdown dock"; case .automations: "scripts apps files shortcuts routines"; case .tracking: "time idle sessions CSV billing history"; case .permissions: "accessibility provider WindowServer experimental"; case .data: "backup restore diagnostics reset privacy"; case .general: "login hover labels appearance offline"; case .license: "trial buy purchase activate key gumroad"; case .about: "version data location help" } }
 }
 
 private struct ShortcutsSettingsView: View {
@@ -416,14 +416,14 @@ private struct LicenseSettingsView: View {
         } else {
             HStack {
                 Button("Validate Now") { Task { await model.license.validate() } }.disabled(model.license.isWorking)
-                Button("Deactivate This Mac") { Task { _ = await model.license.deactivate() } }.disabled(model.license.isWorking)
+                Button("Remove Key From This Mac") { Task { _ = await model.license.deactivate() } }.disabled(model.license.isWorking)
             }
         }
 
         if model.license.isWorking { ProgressView("Contacting the license server…") }
         if let error = model.license.lastError { Label(error, systemImage: "exclamationmark.circle").foregroundStyle(.orange) }
         Divider()
-        Text("DeskOrbit sends only the license key and an instance label for this Mac to Lemon Squeezy when you activate, validate, or deactivate. Your Space names, notes, automations, application usage, and tracking data stay on this Mac.").font(.caption).foregroundStyle(.secondary)
+        Text("DeskOrbit sends only the license key to Gumroad, our store, when you activate or re-check it. Moving to a new Mac? Email support and we will free a slot. Your Space names, notes, automations, application usage, and tracking data stay on this Mac.").font(.caption).foregroundStyle(.secondary)
     } }
 }
 

@@ -25,9 +25,8 @@ scripts, license keys or document bodies are exposed by MCP. Transport is local
 stdio plus an owner-restricted Unix socket, not an HTTP server or cloud relay.
 Connection opt-ins are local settings and are not included in exported backups.
 
-License activation, validation, and deactivation use Lemon Squeezy's License API
-over HTTPS. Those requests include only the license key and a Mac instance label
-made from the local computer name and a random installation-ID prefix;
+License activation and re-checks use Gumroad's license verification API
+over HTTPS. Those requests include only the product ID and the license key;
 they exclude Space names, notes, automations, application activity, and tracking
 history. DeskOrbit's native update check requests only GitHub's public latest-
 release metadata; it does not send Space names, app activity, or a device ID.
