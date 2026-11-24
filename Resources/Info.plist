@@ -23,12 +23,12 @@
     </array>
     <!-- Gumroad product ID for license verification. Empty = activation shows
          "not connected to a store yet"; fill in before a selling release. -->
-    <key>DeskOrbitGumroadProductID</key><string></string>
+    <key>DeskOrbitGumroadProductID</key><string>aDrPkWSoAbky-Vz7gWio8Q==</string>
     <!-- Free beta product ($0, capped quantity). Its keys work until the beta
          ends (CommercialPolicy.betaEndDate). Empty = no beta keys. -->
-    <key>DeskOrbitGumroadBetaProductID</key><string></string>
+    <key>DeskOrbitGumroadBetaProductID</key><string>pRbpfwJacFhUqqQ-u1mM7g==</string>
     <!-- Gumroad offer link with the beta thank-you code, shown when the beta ends. -->
-    <key>DeskOrbitBetaThanksURL</key><string></string>
+    <key>DeskOrbitBetaThanksURL</key><string>https://quinorbit.gumroad.com/l/deskorbit/BETATHANKS</string>
     <!-- Feedback: email and GitHub repo the reporter can open; an optional
          HTTPS endpoint adds a one-click Send button. -->
     <key>DeskOrbitFeedbackEmail</key><string>quin+deskorbit@kauibungalow.com</string>
