@@ -49,6 +49,14 @@ names, note/checklist content, file paths, window titles, app identifiers and
 activity, automation names and bodies, tracking details, the device name,
 license keys, and license activation IDs. DeskOrbit never uploads it.
 
+Send Feedback / Report a Bug builds a message from what the user types plus,
+if they leave it on, the same support-report diagnostics, and shows the exact
+text first. Nothing is sent by DeskOrbit itself: the user chooses to open it in
+their mail app (to the developer's address) or as a prefilled GitHub issue,
+which is public, or to copy it. After a crash, DeskOrbit asks once whether to
+include the latest DeskOrbit crash report (the first 3 KB, with the home folder
+path replaced by ~); the question can be turned off.
+
 Runtime dependency inventory: Apple system frameworks only. Sparkle is used as
 release-time tooling to serve older clients but is not linked, embedded, or run
 on an end user's Mac. Build CI uses pinned-major GitHub Actions.
