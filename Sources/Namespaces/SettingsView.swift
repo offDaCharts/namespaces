@@ -39,7 +39,7 @@ struct SettingsView: View {
         }
         .alert("DeskOrbit", isPresented: Binding(get: { model.lastError != nil }, set: { if !$0 { model.lastError = nil } })) { Button("OK") { model.lastError = nil } } message: { Text(model.lastError ?? "") }
     }
-    private func keywords(_ section: SettingsSection) -> String { switch section { case .spaces: "names icons colors aliases billable"; case .agents: "MCP Claude Codex Cursor AI connection window context"; case .shortcuts: "hotkeys keyboard jump back"; case .notes: "checklist markdown dock"; case .automations: "scripts apps files shortcuts routines"; case .tracking: "time idle sessions CSV billing history"; case .permissions: "accessibility provider WindowServer experimental"; case .data: "backup restore diagnostics reset privacy"; case .general: "login hover labels appearance offline"; case .license: "trial buy purchase activate key lemon"; case .about: "version data location help" } }
+    private func keywords(_ section: SettingsSection) -> String { switch section { case .spaces: "names icons colors aliases billable"; case .agents: "MCP Claude Codex Cursor AI connection window context"; case .shortcuts: "hotkeys keyboard jump back"; case .notes: "checklist markdown dock"; case .automations: "scripts apps files shortcuts routines"; case .tracking: "time idle sessions CSV billing history"; case .permissions: "accessibility provider WindowServer experimental"; case .data: "backup restore diagnostics reset privacy"; case .general: "login hover labels appearance offline"; case .license: "trial buy purchase activate key gumroad"; case .about: "version data location help" } }
 }
 
 private struct ShortcutsSettingsView: View {
@@ -306,8 +306,8 @@ private struct TrackingSettingsView: View {
     private var billableTotal: TimeInterval { filtered.filter(\.billable).reduce(0) { $0 + $1.duration } }
     var body: some View { Page(title: "Time Tracking", subtitle: "Auditable local segments by Space and frontmost application. No window titles or content are collected.") {
         HStack { SummaryTile(name: "Active", value: format(activeTotal)); SummaryTile(name: "Idle", value: format(idleTotal)); SummaryTile(name: "Billable", value: format(billableTotal)); Spacer() }
-        HStack { TextField("Session name", text: $sessionName).frame(width: 180); Button("Start Session") { model.startSession(name: sessionName) }; Button(model.data.sessions.last(where: { $0.endedAt == nil })?.isPaused == true ? "Resume Session" : "Pause Session") { model.toggleSessionPause() }; Button("End Session") { model.endSession() }; Spacer(); Toggle("Pause all tracking", isOn: Binding(get: { model.data.preferences.trackingPaused }, set: { var p = model.data.preferences; p.trackingPaused = $0; model.updatePreferences(p); model.trackingTick(forceBoundary: true) })) }
-        HStack { Picker("Range", selection: $range) { ForEach(SummaryRange.allCases, id: \.self) { Text($0.rawValue).tag($0) } }.frame(width: 150); Picker("Space", selection: $spaceFilter) { Text("All Spaces").tag(UUID?.none); ForEach(model.data.spaces) { Text($0.name).tag(Optional($0.id)) } }.frame(width: 180); Picker("Class", selection: $classFilter) { Text("All Classes").tag(TrackingClassification?.none); ForEach([TrackingClassification.active, .idle, .manual, .recovered, .uncertain], id: \.self) { Text($0.rawValue.capitalized).tag(Optional($0)) } }.frame(width: 170); Spacer(); Text("\(filtered.count) segments · \(model.data.trackingAudit.count) audited edits").foregroundStyle(.secondary) }
+        WrapRow { TextField("Session name", text: $sessionName).frame(width: 180); Button("Start Session") { model.startSession(name: sessionName) }; Button(model.data.sessions.last(where: { $0.endedAt == nil })?.isPaused == true ? "Resume Session" : "Pause Session") { model.toggleSessionPause() }; Button("End Session") { model.endSession() }; Toggle("Pause all tracking", isOn: Binding(get: { model.data.preferences.trackingPaused }, set: { var p = model.data.preferences; p.trackingPaused = $0; model.updatePreferences(p); model.trackingTick(forceBoundary: true) })) }
+        WrapRow { Picker("Range", selection: $range) { ForEach(SummaryRange.allCases, id: \.self) { Text($0.rawValue).tag($0) } }.frame(width: 150); Picker("Space", selection: $spaceFilter) { Text("All Spaces").tag(UUID?.none); ForEach(model.data.spaces) { Text($0.name).tag(Optional($0.id)) } }.frame(width: 180); Picker("Class", selection: $classFilter) { Text("All Classes").tag(TrackingClassification?.none); ForEach([TrackingClassification.active, .idle, .manual, .recovered, .uncertain], id: \.self) { Text($0.rawValue.capitalized).tag(Optional($0)) } }.frame(width: 170); Text("\(filtered.count) segments · \(model.data.trackingAudit.count) audited edits").foregroundStyle(.secondary) }
         Grid(alignment: .leading, horizontalSpacing: 13, verticalSpacing: 7) { GridRow { Text("Space").bold(); Text("Application").bold(); Text("Start").bold(); Text("Duration").bold(); Text("Class").bold(); Text("") }; ForEach(filtered.suffix(200).reversed()) { segment in GridRow { Text(model.data.spaces.first(where: { $0.id == segment.spaceID })?.name ?? "Unknown"); Text(segment.appName); Text(segment.start.formatted(date: .abbreviated, time: .shortened)); Text(format(segment.duration)); Text(segment.classification.rawValue.capitalized); HStack(spacing: 5) { Button("Edit") { editing = segment }.buttonStyle(.link); Button("Delete", role: .destructive) { model.deleteSegment(segment.id) }.buttonStyle(.link) } } } }
         if filtered.isEmpty { ContentUnavailableView("No tracking segments", systemImage: "clock", description: Text("Adjust the filters or use your Mac while tracking is enabled.")) }
     }.sheet(item: $editing) { segment in SegmentEditor(segment: segment, spaces: model.data.spaces, sessions: model.data.sessions) { model.updateSegment($0); editing = nil } onCancel: { editing = nil } } }
@@ -346,7 +346,7 @@ private struct DataSettingsView: View {
     var body: some View {
         Page(title: "Data & Backup", subtitle: "All data is local. Backups are readable versioned JSON and tracking exports are CSV.") {
             LabeledContent("Local store", value: model.store.fileURL.path); LabeledContent("Spaces", value: "\(model.data.spaces.count)"); LabeledContent("Notes", value: "\(model.data.notes.count)"); LabeledContent("Tracking segments", value: "\(model.data.segments.count)")
-            HStack { Button("Export Full Backup…", action: exportBackup); Button("Restore Backup…", action: importBackup); Button("Export Tracking CSV…", action: exportCSV); Button("Create Support Report…") { supportReport = SupportReport.make(from: model) } }
+            WrapRow { Button("Export Full Backup…", action: exportBackup); Button("Restore Backup…", action: importBackup); Button("Export Tracking CSV…", action: exportCSV); Button("Create Support Report…") { supportReport = SupportReport.make(from: model) } }
             HStack { Picker("Automatic local backups", selection: Binding(get: { model.data.preferences.rollingBackupRetention }, set: { var p = model.data.preferences; p.rollingBackupRetention = $0; model.updatePreferences(p) })) { Text("Off").tag(0); Text("Keep 7 daily copies").tag(7); Text("Keep 30 daily copies").tag(30) }.frame(width: 320); Spacer(); Button("Factory Reset…", role: .destructive, action: factoryReset) }
             Text("Restore validates the schema and file size before replacing local state. Support reports are previewed before export and exclude Space names, notes, paths, app activity, automation contents, and license keys.").font(.caption).foregroundStyle(.secondary)
         }
@@ -416,14 +416,21 @@ private struct LicenseSettingsView: View {
         } else {
             HStack {
                 Button("Validate Now") { Task { await model.license.validate() } }.disabled(model.license.isWorking)
-                Button("Deactivate This Mac") { Task { _ = await model.license.deactivate() } }.disabled(model.license.isWorking)
+                Button("Remove Key From This Mac") { Task { _ = await model.license.deactivate() } }.disabled(model.license.isWorking)
+            }
+            if model.license.isBeta {
+                Text("Thanks for testing DeskOrbit. Beta keys work through Feb 28, 2027; after that, beta testers get a thank-you discount on the full version.").font(.callout).foregroundStyle(.secondary)
+                HStack {
+                    Button("Send Feedback…") { WindowCoordinator.shared.showFeedback(model: model) }
+                    Button(model.license.state == .betaEnded ? "Buy With Beta Discount" : "See the Beta Discount") { NSWorkspace.shared.open(model.license.betaThanksURL) }
+                }
             }
         }
 
         if model.license.isWorking { ProgressView("Contacting the license server…") }
         if let error = model.license.lastError { Label(error, systemImage: "exclamationmark.circle").foregroundStyle(.orange) }
         Divider()
-        Text("DeskOrbit sends only the license key and an instance label for this Mac to Lemon Squeezy when you activate, validate, or deactivate. Your Space names, notes, automations, application usage, and tracking data stay on this Mac.").font(.caption).foregroundStyle(.secondary)
+        Text("DeskOrbit sends only the license key to Gumroad, our store, when you activate or re-check it. Moving to a new Mac? Email support and we will free a slot. Your Space names, notes, automations, application usage, and tracking data stay on this Mac.").font(.caption).foregroundStyle(.secondary)
     } }
 }
 
@@ -442,5 +449,52 @@ private extension ProcessInfo {
         var size = 0; sysctlbyname("hw.machine", nil, &size, nil, 0); var bytes = [CChar](repeating: 0, count: size)
         sysctlbyname("hw.machine", &bytes, &size, nil, 0)
         return String(decoding: bytes.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
+    }
+}
+
+/// Lays controls out left to right and wraps to a new line when the Settings
+/// window is narrower than the row. Fixed HStacks of four buttons truncated
+/// their titles ("Export Tracki…") at the default 900 pt window and clipped at
+/// the 760 pt minimum.
+struct WrapRow: Layout {
+    var spacing: CGFloat = 8
+    var lineSpacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let rows = arrange(width: proposal.width ?? .infinity, subviews: subviews)
+        let width = rows.map(\.width).max() ?? 0
+        let height = rows.map(\.height).reduce(0, +) + lineSpacing * CGFloat(max(0, rows.count - 1))
+        return CGSize(width: proposal.width.map { min($0, width) } ?? width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var y = bounds.minY
+        for row in arrange(width: bounds.width, subviews: subviews) {
+            var x = bounds.minX
+            for index in row.indices {
+                let size = subviews[index].sizeThatFits(.unspecified)
+                subviews[index].place(at: CGPoint(x: x, y: y + (row.height - size.height) / 2), proposal: ProposedViewSize(size))
+                x += size.width + spacing
+            }
+            y += row.height + lineSpacing
+        }
+    }
+
+    private struct Row { var indices: [Int] = []; var width: CGFloat = 0; var height: CGFloat = 0 }
+
+    private func arrange(width: CGFloat, subviews: Subviews) -> [Row] {
+        var rows: [Row] = [Row()]
+        for index in subviews.indices {
+            let size = subviews[index].sizeThatFits(.unspecified)
+            let added = rows[rows.count - 1].indices.isEmpty ? size.width : rows[rows.count - 1].width + spacing + size.width
+            if added > width, !rows[rows.count - 1].indices.isEmpty {
+                rows.append(Row(indices: [index], width: size.width, height: size.height))
+            } else {
+                rows[rows.count - 1].indices.append(index)
+                rows[rows.count - 1].width = added
+                rows[rows.count - 1].height = max(rows[rows.count - 1].height, size.height)
+            }
+        }
+        return rows
     }
 }

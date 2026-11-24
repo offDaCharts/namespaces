@@ -12,8 +12,8 @@
     <key>CFBundleDisplayName</key><string>DeskOrbit</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>0.3.0</string>
-    <key>CFBundleVersion</key><string>18</string>
+    <key>CFBundleShortVersionString</key><string>0.3.1</string>
+    <key>CFBundleVersion</key><string>19</string>
     <key>CFBundleURLTypes</key>
     <array>
         <dict>
@@ -21,6 +21,19 @@
             <key>CFBundleURLSchemes</key><array><string>deskorbit</string><string>namespaces</string></array>
         </dict>
     </array>
+    <!-- Gumroad product ID for license verification. Empty = activation shows
+         "not connected to a store yet"; fill in before a selling release. -->
+    <key>DeskOrbitGumroadProductID</key><string>aDrPkWSoAbky-Vz7gWio8Q==</string>
+    <!-- Free beta product ($0, capped quantity). Its keys work until the beta
+         ends (CommercialPolicy.betaEndDate). Empty = no beta keys. -->
+    <key>DeskOrbitGumroadBetaProductID</key><string>pRbpfwJacFhUqqQ-u1mM7g==</string>
+    <!-- Gumroad offer link with the beta thank-you code, shown when the beta ends. -->
+    <key>DeskOrbitBetaThanksURL</key><string>https://quinorbit.gumroad.com/l/deskorbit/BETATHANKS</string>
+    <!-- Feedback: email and GitHub repo the reporter can open; an optional
+         HTTPS endpoint adds a one-click Send button. -->
+    <key>DeskOrbitFeedbackEmail</key><string>quin+deskorbit@kauibungalow.com</string>
+    <key>DeskOrbitFeedbackRepository</key><string>offDaCharts/namespaces</string>
+    <key>DeskOrbitFeedbackURL</key><string></string>
     <key>LSMinimumSystemVersion</key><string>14.0</string>
     <key>LSUIElement</key><true/>
     <key>NSHighResolutionCapable</key><true/>

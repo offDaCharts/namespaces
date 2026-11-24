@@ -13,8 +13,8 @@ DeskOrbit 0.3.0 runtime dependency inventory:
 | URLSession | Apple Foundation | GitHub release check and license requests | Yes |
 | Darwin Unix sockets / Foundation JSON | macOS | Local opt-in MCP IPC | Local only; no TCP/HTTP listener |
 
-DeskOrbit contacts GitHub's public latest-release endpoint and Lemon Squeezy's
-HTTPS License API directly with `URLSession`; no networking SDK is embedded.
+DeskOrbit contacts GitHub's public latest-release endpoint and Gumroad's
+HTTPS license verification API directly with `URLSession`; no networking SDK is embedded.
 Sparkle 2.9.6 remains release-time appcast tooling for older versions only and
 is not present in the runtime app bundle.
 

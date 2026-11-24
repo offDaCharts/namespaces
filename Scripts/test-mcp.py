@@ -65,7 +65,7 @@ def tool(name, arguments=None, expect_error=False):
 try:
     assert rpc("tools/list")["error"]["code"] == -32002
     init = rpc("initialize", {"protocolVersion": "2025-11-25", "capabilities": {}, "clientInfo": {"name": "deskorbit-smoke", "version": "1"}})
-    assert init["result"]["serverInfo"]["version"] == "0.3.0"
+    assert init["result"]["serverInfo"]["version"] == "0.3.1"
     rpc("notifications/initialized", notification=True)
     definitions = rpc("tools/list")["result"]["tools"]
     assert len(definitions) == 6
@@ -91,7 +91,7 @@ try:
         print("PASS: recovered available Space styling from backup")
     if args.live or args.apply_round_trip:
         status = tool("deskorbit_status")
-        assert status["version"] == "0.3.0"
+        assert status["version"] == "0.3.1"
         if not status["window_context_enabled"]:
             tool("deskorbit_window_context", expect_error=True)
         elif args.check_context:

@@ -97,7 +97,7 @@ extension AppModel {
         }
         switch name {
         case "deskorbit_status":
-            return .object(["version": .string(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.3.0"),
+            return .object(["version": .string(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.3.1"),
                 "provider": .string(providerName), "can_discover_spaces": .bool(provider.capabilities.contains(.enumerate)),
                 "can_create_spaces": .bool(false), "can_switch_spaces": .bool(provider.capabilities.contains(.switchSpace) && license.hasAccess),
                 "window_context_enabled": .bool(UserDefaults.standard.bool(forKey: AgentConnection.contextKey)),

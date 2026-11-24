@@ -165,3 +165,108 @@ final class CoreTests: XCTestCase {
         XCTAssertTrue(MissionControlLayout.shouldCloseAfterMissingWindow(hasSeenWindow: false, secondsSinceOpen: 0.7))
     }
 }
+
+final class QAPassTests: XCTestCase {
+    func testDesktopIndexReadsLocalizedMissionControlLabels() {
+        XCTAssertEqual(MissionControlLayout.desktopIndex(in: ["Schreibtisch 4"]), 4)
+        XCTAssertEqual(MissionControlLayout.desktopIndex(in: ["Bureau 2"]), 2)
+        XCTAssertEqual(MissionControlLayout.desktopIndex(in: ["Bureaublad 7"]), 7)
+        XCTAssertEqual(MissionControlLayout.desktopIndex(in: ["Escritorio 3"]), 3)
+        XCTAssertEqual(MissionControlLayout.desktopIndex(in: ["デスクトップ5"]), 5)
+        XCTAssertEqual(MissionControlLayout.desktopIndex(in: ["桌面 6"]), 6)
+        XCTAssertEqual(MissionControlLayout.desktopIndex(in: ["Рабочий стол 8"]), 8)
+        XCTAssertEqual(MissionControlLayout.desktopIndex(in: ["Desktop 10"]), 10)
+        // Unchanged English behaviour.
+        XCTAssertEqual(MissionControlLayout.desktopIndex(in: ["ignored", "Space 12, selected"]), 12)
+        XCTAssertNil(MissionControlLayout.desktopIndex(in: ["Finder window 3"]))
+        XCTAssertNil(MissionControlLayout.desktopIndex(in: ["Desktop 0"]))
+        XCTAssertNil(MissionControlLayout.desktopIndex(in: ["Desktops"]))
+        XCTAssertNil(MissionControlLayout.desktopIndex(in: ["Workspace 3"]))
+    }
+
+    func testBadgesNeverReachNeighbouringThumbnailLabels() {
+        // 13" laptop, 12 Spaces: compact native labels ~95 pt apart.
+        let anchors = (0..<12).map { CGRect(x: 40 + CGFloat($0) * 95, y: 900, width: 60, height: 16) }
+        let longName = String(repeating: "x", count: 40)
+        for anchor in anchors {
+            let width = MissionControlLayout.badgeWidth(nameLength: longName.count, anchor: anchor, neighbors: anchors)
+            XCTAssertLessThanOrEqual(width, 89)
+        }
+        // Few Spaces on a 4K external: the full desired width is kept.
+        let wide = [CGRect(x: 400, y: 1900, width: 60, height: 16), CGRect(x: 1400, y: 1900, width: 60, height: 16)]
+        XCTAssertEqual(MissionControlLayout.badgeWidth(nameLength: 40, anchor: wide[0], neighbors: wide), 190)
+        // A short name is not stretched.
+        XCTAssertEqual(MissionControlLayout.badgeWidth(nameLength: 3, anchor: wide[0], neighbors: wide), 54)
+        // Anchors on another row (another display stacked above) are ignored.
+        let other = [wide[0], CGRect(x: 430, y: 200, width: 60, height: 16)]
+        XCTAssertEqual(MissionControlLayout.badgeWidth(nameLength: 40, anchor: other[0], neighbors: other), 190)
+    }
+
+    func testSpacesMatchScreensByDisplayUUIDNotMarketingName() {
+        let left = "11111111-AAAA-0000-0000-000000000001", right = "22222222-BBBB-0000-0000-000000000002"
+        // Two identical monitors share one localized name.
+        XCTAssertTrue(DisplayMatching.belongs(spaceDisplayID: right, spaceDisplayName: "DELL U2723QE", screenUUID: right.lowercased(), screenName: "DELL U2723QE", isPrimaryScreen: false, screenCount: 2))
+        XCTAssertFalse(DisplayMatching.belongs(spaceDisplayID: right, spaceDisplayName: "DELL U2723QE", screenUUID: left, screenName: "DELL U2723QE", isPrimaryScreen: true, screenCount: 2))
+        // "Displays have separate Spaces" off: one shared set on the primary screen.
+        XCTAssertTrue(DisplayMatching.belongs(spaceDisplayID: "Main", spaceDisplayName: "Display 1", screenUUID: left, screenName: "Built-in Retina Display", isPrimaryScreen: true, screenCount: 2))
+        XCTAssertFalse(DisplayMatching.belongs(spaceDisplayID: "Main", spaceDisplayName: "Display 1", screenUUID: right, screenName: "DELL", isPrimaryScreen: false, screenCount: 2))
+        XCTAssertTrue(DisplayMatching.belongs(spaceDisplayID: "x", spaceDisplayName: "y", screenUUID: nil, screenName: "z", isPrimaryScreen: true, screenCount: 1))
+    }
+}
+
+final class LicenseOutcomeTests: XCTestCase {
+    func testServerRejectionIsNotTreatedAsOffline() {
+        XCTAssertEqual(LicenseCheckOutcome.from(httpStatus: 200, valid: true, message: nil), .valid)
+        XCTAssertEqual(LicenseCheckOutcome.from(httpStatus: 200, valid: false, message: "refunded"), .rejected("refunded"))
+        // Lemon Squeezy answers an unknown/disabled key with 404 + valid:false.
+        XCTAssertEqual(LicenseCheckOutcome.from(httpStatus: 404, valid: false, message: "license_key not found."), .rejected("license_key not found."))
+        XCTAssertEqual(LicenseCheckOutcome.from(httpStatus: 400, valid: nil, message: "bad key"), .rejected("bad key"))
+    }
+
+    func testOutagesKeepAnActivatedCopyWorking() {
+        XCTAssertEqual(LicenseCheckOutcome.from(httpStatus: nil, valid: nil, message: nil), .unreachable)
+        XCTAssertEqual(LicenseCheckOutcome.from(httpStatus: 503, valid: nil, message: nil), .unreachable)
+        XCTAssertEqual(LicenseCheckOutcome.from(httpStatus: 429, valid: false, message: "slow down"), .unreachable)
+        XCTAssertEqual(LicenseCheckOutcome.from(httpStatus: 200, valid: nil, message: nil), .unreachable)
+        // A captive portal / proxy HTML page: no decodable answer.
+        XCTAssertEqual(LicenseCheckOutcome.from(httpStatus: 403, valid: nil, message: nil), .unreachable)
+    }
+}
+
+final class GumroadLicenseTests: XCTestCase {
+    private func json(_ s: String) -> Data { Data(s.utf8) }
+
+    func testValidSaleActivatesAndRechecks() {
+        let ok = json(#"{"success":true,"uses":1,"purchase":{"refunded":false,"disputed":false,"chargebacked":false,"email":"a@b.c"}}"#)
+        XCTAssertEqual(GumroadLicense.outcome(httpStatus: 200, data: ok, incremented: true), .valid)
+        XCTAssertEqual(GumroadLicense.outcome(httpStatus: 200, data: ok, incremented: false), .valid)
+    }
+
+    func testRefundsDisputesAndUnknownKeysAreRejected() {
+        let refunded = json(#"{"success":true,"uses":2,"purchase":{"refunded":true}}"#)
+        guard case .rejected = GumroadLicense.outcome(httpStatus: 200, data: refunded, incremented: false) else { return XCTFail() }
+        let disputed = json(#"{"success":true,"uses":2,"purchase":{"refunded":false,"chargebacked":true}}"#)
+        guard case .rejected = GumroadLicense.outcome(httpStatus: 200, data: disputed, incremented: false) else { return XCTFail() }
+        let unknown = json(#"{"success":false,"message":"That license does not exist for the provided product."}"#)
+        XCTAssertEqual(GumroadLicense.outcome(httpStatus: 404, data: unknown, incremented: true), .rejected("That license does not exist for the provided product."))
+    }
+
+    func testActivationLimitAppliesOnlyWhenCounting() {
+        let many = json(#"{"success":true,"uses":6,"purchase":{"refunded":false}}"#)
+        guard case .rejected = GumroadLicense.outcome(httpStatus: 200, data: many, incremented: true) else { return XCTFail() }
+        // An already-activated Mac re-checking must not lose access because others activated later.
+        XCTAssertEqual(GumroadLicense.outcome(httpStatus: 200, data: many, incremented: false), .valid)
+    }
+
+    func testOutagesAreNotRejections() {
+        XCTAssertEqual(GumroadLicense.outcome(httpStatus: nil, data: nil, incremented: false), .unreachable)
+        XCTAssertEqual(GumroadLicense.outcome(httpStatus: 502, data: json("<html>"), incremented: false), .unreachable)
+        XCTAssertEqual(GumroadLicense.outcome(httpStatus: 200, data: json("<html>captive portal</html>"), incremented: false), .unreachable)
+    }
+
+    func testRequestBodyEscapesPlusAndAmpersand() {
+        let body = String(decoding: GumroadLicense.requestBody(productID: "abc==", licenseKey: "K+1&2", incrementUses: false), as: UTF8.self)
+        XCTAssertTrue(body.contains("license_key=K%2B1%262"), body)
+        XCTAssertTrue(body.contains("increment_uses_count=false"))
+    }
+}

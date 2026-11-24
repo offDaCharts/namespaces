@@ -25,9 +25,8 @@ scripts, license keys or document bodies are exposed by MCP. Transport is local
 stdio plus an owner-restricted Unix socket, not an HTTP server or cloud relay.
 Connection opt-ins are local settings and are not included in exported backups.
 
-License activation, validation, and deactivation use Lemon Squeezy's License API
-over HTTPS. Those requests include only the license key and a Mac instance label
-made from the local computer name and a random installation-ID prefix;
+License activation and re-checks use Gumroad's license verification API
+over HTTPS. Those requests include only the product ID and the license key;
 they exclude Space names, notes, automations, application activity, and tracking
 history. DeskOrbit's native update check requests only GitHub's public latest-
 release metadata; it does not send Space names, app activity, or a device ID.
@@ -49,6 +48,14 @@ stages, and DeskOrbit crash-report filenames. It intentionally excludes Space
 names, note/checklist content, file paths, window titles, app identifiers and
 activity, automation names and bodies, tracking details, the device name,
 license keys, and license activation IDs. DeskOrbit never uploads it.
+
+Send Feedback / Report a Bug builds a message from what the user types plus,
+if they leave it on, the same support-report diagnostics, and shows the exact
+text first. Nothing is sent by DeskOrbit itself: the user chooses to open it in
+their mail app (to the developer's address) or as a prefilled GitHub issue,
+which is public, or to copy it. After a crash, DeskOrbit asks once whether to
+include the latest DeskOrbit crash report (the first 3 KB, with the home folder
+path replaced by ~); the question can be turned off.
 
 Runtime dependency inventory: Apple system frameworks only. Sparkle is used as
 release-time tooling to serve older clients but is not linked, embedded, or run
