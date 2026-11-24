@@ -8,8 +8,14 @@ final class LicenseController: ObservableObject {
     enum State: Equatable {
         case trial(daysRemaining: Int)
         case licensed
+        case beta(daysRemaining: Int)
+        case betaEnded
         case expired
     }
+
+    /// Which Gumroad product a key belongs to. Beta keys come from a separate
+    /// $0 product with a capped quantity and stop working after the beta.
+    enum Tier: String { case standard, beta }
 
     @Published private(set) var state: State
     @Published private(set) var isWorking = false
@@ -23,26 +29,40 @@ final class LicenseController: ObservableObject {
     private let firstLaunchKey = "DeskOrbit.firstLaunchDate"
     private let service = "com.kauibungalow.deskorbit.license"
     private let account = "license-key"
+    private let tierKey = "DeskOrbit.licenseTier"
     private var licenseKey: String?
+    private var tier: Tier {
+        get { Tier(rawValue: defaults.string(forKey: tierKey) ?? "") ?? .standard }
+        set { defaults.set(newValue.rawValue, forKey: tierKey) }
+    }
+
+    /// Where a beta tester buys with the thank-you discount (a Gumroad offer
+    /// link). Falls back to the site's buy section.
+    var betaThanksURL: URL {
+        Self.infoString("DeskOrbitBetaThanksURL").flatMap(URL.init(string:)) ?? purchaseURL
+    }
 
     init() {
         if defaults.object(forKey: firstLaunchKey) == nil {
             defaults.set(Date(), forKey: firstLaunchKey)
         }
         licenseKey = Self.readKeychain(service: service, account: account)
-        state = licenseKey == nil ? .trial(daysRemaining: 14) : .licensed
+        state = .trial(daysRemaining: CommercialPolicy.trialLengthDays)
         refreshLocalState()
         if licenseKey != nil {
             Task { await validate() }
         }
     }
 
-    var hasAccess: Bool { state != .expired }
+    var hasAccess: Bool { state != .expired && state != .betaEnded }
+    var isBeta: Bool { tier == .beta }
 
     var statusTitle: String {
         switch state {
         case .licensed: "Licensed"
         case .trial(let days): days == 1 ? "1 day left in trial" : "\(days) days left in trial"
+        case .beta(let days): days == 1 ? "Beta tester · 1 day left" : "Beta tester · \(days) days left"
+        case .betaEnded: "Beta ended — thank you!"
         case .expired: "Trial expired"
         }
     }
@@ -54,10 +74,22 @@ final class LicenseController: ObservableObject {
 
     /// The Gumroad product this build sells. Set `DeskOrbitGumroadProductID`
     /// in Info.plist (Gumroad → product → Content → License key → product ID).
-    private var productID: String? {
-        let value = (Bundle.main.object(forInfoDictionaryKey: "DeskOrbitGumroadProductID") as? String)?
+    private var productID: String? { Self.infoString("DeskOrbitGumroadProductID") }
+    /// The free beta product (Info.plist `DeskOrbitGumroadBetaProductID`).
+    private var betaProductID: String? { Self.infoString("DeskOrbitGumroadBetaProductID") }
+
+    private static func infoString(_ key: String) -> String? {
+        let value = (Bundle.main.object(forInfoDictionaryKey: key) as? String)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return value?.isEmpty == false ? value : nil
+    }
+
+    private func product(for tier: Tier) -> String? { tier == .beta ? betaProductID : productID }
+
+    private func licensedState(for tier: Tier) -> State {
+        guard tier == .beta else { return .licensed }
+        let days = CommercialPolicy.betaDaysRemaining()
+        return days > 0 ? .beta(daysRemaining: days) : .betaEnded
     }
 
     func activate(_ rawKey: String) async -> Bool {
@@ -66,7 +98,7 @@ final class LicenseController: ObservableObject {
             lastError = "Enter the license key from your purchase email."
             return false
         }
-        guard let productID else {
+        guard productID != nil || betaProductID != nil else {
             lastError = "This build of DeskOrbit is not connected to a store yet."
             return false
         }
@@ -75,7 +107,22 @@ final class LicenseController: ObservableObject {
         lastError = nil
         defer { isWorking = false }
 
-        switch await verify(productID: productID, key: key, incrementUses: true) {
+        // Try the paid product first, then the beta product. A key belongs to
+        // exactly one of them, so at most one counts an activation.
+        var outcome = LicenseCheckOutcome.rejected("That license key does not exist for DeskOrbit.")
+        var matchedTier = Tier.standard
+        for candidate in [Tier.standard, .beta] {
+            guard let id = product(for: candidate) else { continue }
+            outcome = await verify(productID: id, key: key, incrementUses: true)
+            matchedTier = candidate
+            if case .rejected = outcome { continue }
+            break
+        }
+        if matchedTier == .beta, case .valid = outcome, CommercialPolicy.betaDaysRemaining() == 0 {
+            outcome = .rejected("The DeskOrbit beta has ended, so beta keys no longer activate. Thank you for testing!")
+        }
+
+        switch outcome {
         case .valid:
             do {
                 try Self.writeKeychain(key, service: service, account: account)
@@ -84,7 +131,8 @@ final class LicenseController: ObservableObject {
                 return false
             }
             licenseKey = key
-            state = .licensed
+            tier = matchedTier
+            state = licensedState(for: matchedTier)
             return true
         case .rejected(let message):
             lastError = message
@@ -100,22 +148,23 @@ final class LicenseController: ObservableObject {
             refreshLocalState()
             return
         }
-        guard let productID else {
+        let currentTier = tier
+        guard let productID = product(for: currentTier) else {
             // Keys activated by an earlier build stay usable.
-            state = .licensed
+            state = licensedState(for: currentTier)
             return
         }
         switch await verify(productID: productID, key: key, incrementUses: false) {
         case .valid:
-            state = .licensed
-            lastError = nil
+            state = licensedState(for: currentTier)
+            lastError = state == .betaEnded ? "The beta ended on Feb 28, 2027. Use the thank-you discount below to keep DeskOrbit." : nil
         case .rejected(let message):
             state = .expired
             lastError = message
         case .unreachable:
             // A previously activated copy remains usable offline. Validation will
             // retry on the next launch or when the user opens License settings.
-            state = .licensed
+            state = licensedState(for: currentTier)
             lastError = "License validation is temporarily unavailable. DeskOrbit remains active offline."
         }
     }
@@ -129,7 +178,7 @@ final class LicenseController: ObservableObject {
 
     private func refreshLocalState() {
         guard licenseKey == nil else {
-            state = .licensed
+            state = licensedState(for: tier)
             return
         }
         let firstLaunch = defaults.object(forKey: firstLaunchKey) as? Date ?? .now
@@ -140,6 +189,7 @@ final class LicenseController: ObservableObject {
     private func clearLicense() {
         Self.deleteKeychain(service: service, account: account)
         defaults.removeObject(forKey: "DeskOrbit.licenseInstanceID")
+        defaults.removeObject(forKey: tierKey)
         licenseKey = nil
         refreshLocalState()
     }

@@ -4,6 +4,20 @@ public enum CommercialPolicy {
     public static let trialLengthDays = 14
     public static let priceDisplay = "$9.99"
 
+    /// Free beta licenses (a separate $0 Gumroad product) work through the end
+    /// of February 2027, then the app asks for a paid key with a thank-you code.
+    public static let betaEndDate: Date = {
+        var components = DateComponents()
+        components.calendar = Calendar(identifier: .gregorian)
+        components.timeZone = TimeZone(identifier: "America/New_York")
+        components.year = 2027; components.month = 3; components.day = 1
+        return components.date!
+    }()
+
+    public static func betaDaysRemaining(now: Date = .now, endDate: Date = betaEndDate) -> Int {
+        max(0, Int(ceil(endDate.timeIntervalSince(now) / 86_400)))
+    }
+
     public static func trialDaysRemaining(firstLaunch: Date, now: Date = .now) -> Int {
         // A future first-launch timestamp means the system clock moved backwards.
         // Do not extend a trial in that state.

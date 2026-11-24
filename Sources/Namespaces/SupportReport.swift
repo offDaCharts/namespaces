@@ -17,8 +17,10 @@ struct SupportReport: Identifiable {
         ].joined(separator: ", ")
         let displaySummary = NSScreen.screens.enumerated().map { index, screen in
             let frame = screen.frame
-            return "display-\(index + 1): \(Int(frame.width))x\(Int(frame.height)) @\(String(format: "%.1f", screen.backingScaleFactor))x"
+            let scale = screen.backingScaleFactor
+            return "display-\(index + 1)\(screen == NSScreen.main ? " (main)" : ""): \(Int(frame.width))x\(Int(frame.height)) pt, \(Int(frame.width * scale))x\(Int(frame.height * scale)) px @\(String(format: "%.1f", scale))x"
         }.joined(separator: "; ")
+        let separateSpaces = NSScreen.screensHaveSeparateSpaces
         let recentLaunchStages = launchStages().suffix(30).joined(separator: "\n")
         let crashReports = crashReportNames().prefix(3).joined(separator: ", ")
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development"
@@ -37,7 +39,9 @@ struct SupportReport: Identifiable {
         Capabilities: \(capabilities)
         Accessibility approved: \(AXIsProcessTrusted())
         Mission Control status: \(model.missionControlOverlayStatus)
-        Displays: \(displaySummary.isEmpty ? "none detected" : displaySummary)
+        Displays (\(NSScreen.screens.count)): \(displaySummary.isEmpty ? "none detected" : displaySummary)
+        Displays have separate Spaces: \(separateSpaces)
+        License: \(model.license.isBeta ? "beta" : model.license.statusTitle)
         Spaces observed: \(model.nativeSpaces.count)
         Saved profiles: \(model.data.spaces.count)
         Unmatched profiles: \(model.data.spaces.filter { model.native(for: $0) == nil }.count)

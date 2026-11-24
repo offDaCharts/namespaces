@@ -418,6 +418,13 @@ private struct LicenseSettingsView: View {
                 Button("Validate Now") { Task { await model.license.validate() } }.disabled(model.license.isWorking)
                 Button("Remove Key From This Mac") { Task { _ = await model.license.deactivate() } }.disabled(model.license.isWorking)
             }
+            if model.license.isBeta {
+                Text("Thanks for testing DeskOrbit. Beta keys work through Feb 28, 2027; after that, beta testers get a thank-you discount on the full version.").font(.callout).foregroundStyle(.secondary)
+                HStack {
+                    Button("Send Feedback…") { WindowCoordinator.shared.showFeedback(model: model) }
+                    Button(model.license.state == .betaEnded ? "Buy With Beta Discount" : "See the Beta Discount") { NSWorkspace.shared.open(model.license.betaThanksURL) }
+                }
+            }
         }
 
         if model.license.isWorking { ProgressView("Contacting the license server…") }

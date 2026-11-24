@@ -1,8 +1,26 @@
-# DeskOrbit 0.3.0 — Talk to Your Spaces
+# DeskOrbit 0.3.1
 
-Release candidate. Public distribution remains gated on Developer ID signing,
-Apple notarization, CI and outstanding visual/hardware QA. Candidate artifacts
-are ad-hoc signed for private testing, not a notarized public release.
+First signed and notarized public release. Licenses now come from Gumroad.
+
+- **Buy and activate through Gumroad.** Paste the key from your receipt in
+  Settings → License. One purchase covers up to 3 Macs.
+- **Free beta keys.** Beta testers' keys work through Feb 28, 2027, with a
+  thank-you discount on the full version afterwards.
+- **Send Feedback / Report a Bug** in the menu bar menu: write a note, review
+  the exact diagnostics (macOS version, displays and scaling, Spaces count;
+  never names, notes or window titles), then send by email or as a GitHub issue.
+- **Crash reports are opt-in.** After a crash DeskOrbit asks once whether to
+  send the report, and shows it first.
+- Mission Control labels now appear on non-English Macs (German, French,
+  Spanish, Japanese, Chinese and more).
+- Labels no longer overlap with many Spaces on a small screen.
+- Two identical monitors, and "Displays have separate Spaces" turned off, now
+  get the right labels (matched by display UUID).
+- A refunded key stops working; network outages still keep an activated Mac
+  working.
+- Settings rows wrap instead of cutting off at the smallest window size.
+
+## Included from 0.3.0 — Talk to Your Spaces
 
 - Adds a built-in, local MCP connection for Codex, Claude Code, Claude Desktop,
   Cursor and compatible stdio clients, with copyable setup in Settings → Agents.

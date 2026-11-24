@@ -20,6 +20,16 @@ final class WindowCoordinator {
         settingsWindow = window; restoreReachableWindows(); window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
     }
 
+    private var feedbackWindow: NSWindow?
+
+    func showFeedback(model: AppModel, crash: Bool = false) {
+        if let feedbackWindow { feedbackWindow.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true); return }
+        let view = FeedbackView(startWithCrash: crash) { [weak self] in self?.feedbackWindow?.close(); self?.feedbackWindow = nil }.environmentObject(model)
+        let window = NSWindow(contentViewController: NSHostingController(rootView: view))
+        window.title = "DeskOrbit Feedback"; window.styleMask = [.titled, .closable, .resizable]; window.isReleasedWhenClosed = false; window.center()
+        feedbackWindow = window; window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
+    }
+
     func showOnboarding(model: AppModel) {
         if let onboardingWindow { onboardingWindow.makeKeyAndOrderFront(nil); return }
         let view = OnboardingView { [weak self] in self?.onboardingWindow?.close(); self?.onboardingWindow = nil; self?.showSettings(model: model) }.environmentObject(model)
@@ -117,6 +127,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             LaunchDiagnostics.record("primary UI presentation completed")
             DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
+                self?.offerCrashReport()
                 self?.updateController.checkForUpdates(userInitiated: false)
                 LaunchDiagnostics.record("native update check scheduled")
             }
@@ -210,6 +221,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let settings = NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ","); settings.target = self; menu.addItem(settings)
         let capabilities = NSMenuItem(title: "Capabilities & Permissions…", action: #selector(showSettings), keyEquivalent: ""); capabilities.target = self; menu.addItem(capabilities)
         let refresh = NSMenuItem(title: "Refresh Spaces", action: #selector(refresh), keyEquivalent: "r"); refresh.target = self; menu.addItem(refresh)
+        let feedback = NSMenuItem(title: model.license.isBeta ? "Send Beta Feedback / Report a Bug…" : "Send Feedback / Report a Bug…", action: #selector(showFeedback), keyEquivalent: ""); feedback.target = self; menu.addItem(feedback)
         let help = NSMenuItem(title: "Help & Privacy…", action: #selector(showHelp), keyEquivalent: "?"); help.target = self; menu.addItem(help)
         let updates = NSMenuItem(title: "Check for Updates…", action: #selector(checkUpdates), keyEquivalent: ""); updates.target = self; menu.addItem(updates)
         let license = NSMenuItem(title: "License: \(model.license.statusTitle)", action: #selector(showSettings), keyEquivalent: ""); license.target = self; menu.addItem(license)
@@ -257,6 +269,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func jumpBack() { model.jumpBack() }
     @objc private func showLabels() { OverlayController.shared.showSpaceLabels() }
     @objc private func showSettings() { WindowCoordinator.shared.showSettings(model: model) }
+    @objc private func showFeedback() { WindowCoordinator.shared.showFeedback(model: model) }
+
+    /// Opt-in crash reporting: after a crash, ask once whether to send it.
+    private func offerCrashReport() {
+        let pending = CrashReports.pending()
+        guard !pending.isEmpty else { CrashReports.markSeen(); return }
+        let alert = NSAlert()
+        alert.messageText = "DeskOrbit quit unexpectedly last time"
+        alert.informativeText = "Would you like to send the crash report? You'll see exactly what it contains first, and nothing is sent unless you choose to."
+        alert.addButton(withTitle: "Review and Send…"); alert.addButton(withTitle: "Not Now"); alert.addButton(withTitle: "Don't Ask Again")
+        NSApp.activate(ignoringOtherApps: true)
+        switch alert.runModal() {
+        case .alertFirstButtonReturn: WindowCoordinator.shared.showFeedback(model: model, crash: true)
+        case .alertThirdButtonReturn: CrashReports.disablePrompt()
+        default: CrashReports.markSeen()
+        }
+    }
     @objc private func refresh() { model.refreshSpaces() }
     @objc private func quit() { model.closeOpenSegment(classification: .active); NSApp.terminate(nil) }
 }

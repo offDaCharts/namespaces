@@ -121,7 +121,7 @@ public struct MCPProtocol {
             let requested = request["params"]["protocolVersion"].string!
             let supported = ["2025-06-18", "2025-11-25"]
             return result(.object(["protocolVersion": .string(supported.contains(requested) ? requested : "2025-11-25"),
-                "capabilities": .object(["tools": .object([:])]), "serverInfo": .object(["name": .string("deskorbit"), "version": .string("0.3.0")]), "instructions": .string(AgentTools.instructions)]))
+                "capabilities": .object(["tools": .object([:])]), "serverInfo": .object(["name": .string("deskorbit"), "version": .string("0.3.1")]), "instructions": .string(AgentTools.instructions)]))
         }
         if method == "ping" { return result(.object([:])) }
         guard initialized else { return error(id, -32002, "Initialize the connection first") }
